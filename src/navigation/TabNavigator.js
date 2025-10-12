@@ -23,6 +23,9 @@ const HomeScreen = () => {
   const [commentModalVisible, setCommentModalVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentText, setCommentText] = useState('');
+  const [createPostVisible, setCreatePostVisible] = useState(false);
+  const [newPostText, setNewPostText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const handleLike = (postId) => {
     toggleLike(postId);
@@ -42,6 +45,32 @@ const HomeScreen = () => {
     }
   };
 
+  const handleCreatePost = () => {
+    setCreatePostVisible(true);
+  };
+
+  const submitPost = () => {
+    if (newPostText.trim()) {
+      // This would normally save to backend
+      Alert.alert('Success', 'Post created successfully!');
+      setNewPostText('');
+      setSelectedImage(null);
+      setCreatePostVisible(false);
+    }
+  };
+
+  const handlePostOptions = (postId) => {
+    Alert.alert(
+      'Post Options',
+      'What would you like to do with this post?',
+      [
+        { text: 'Share', onPress: () => Alert.alert('Share', 'Share functionality coming soon!') },
+        { text: 'Report', onPress: () => Alert.alert('Report', 'Report functionality coming soon!') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
   const renderPost = (post) => (
     <View key={post.id} style={styles.postContainer}>
       {/* Post Header */}
@@ -53,8 +82,8 @@ const HomeScreen = () => {
             <Text style={styles.postTimestamp}>{post.timestamp}</Text>
           </View>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.textSecondary} />
+        <TouchableOpacity onPress={() => handlePostOptions(post.id)}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
         </TouchableOpacity>
       </View>
 
@@ -160,6 +189,53 @@ const HomeScreen = () => {
               multiline
               autoFocus
             />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.floatingActionButton}
+        onPress={handleCreatePost}
+      >
+        <Ionicons name="add" size={24} color="#ffffff" />
+      </TouchableOpacity>
+
+      {/* Create Post Modal */}
+      <Modal
+        visible={createPostVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCreatePostVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.createPostModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setCreatePostVisible(false)}>
+                <Ionicons name="close" size={24} color="#1a1a1a" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Create Post</Text>
+              <TouchableOpacity onPress={submitPost}>
+                <Text style={styles.postButton}>Post</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.createPostContent}>
+              <TextInput
+                style={styles.postTextInput}
+                placeholder="Share your fashion thoughts..."
+                placeholderTextColor="#999999"
+                value={newPostText}
+                onChangeText={setNewPostText}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <TouchableOpacity style={styles.addImageButton}>
+                <Ionicons name="image-outline" size={24} color="#666666" />
+                <Text style={styles.addImageText}>Add Photo</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -413,40 +489,50 @@ const WardrobeScreen = () => {
 const ARScreen = () => {
   const { captureARPhoto, arPhotos, deleteARPhoto } = useAppStore();
   const [hasPermission, setHasPermission] = useState(null);
-  const [cameraType, setCameraType] = useState('front');
+  const [cameraType, setCameraType] = useState(Camera.Constants.Type.front);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const cameraRef = React.useRef(null);
 
   useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
-      setHasPermission(status === 'granted');
+      try {
+        const { status } = await Camera.requestCameraPermissionsAsync();
+        setHasPermission(status === 'granted');
+      } catch (error) {
+        console.error('Camera permission error:', error);
+        setHasPermission(false);
+      }
     })();
   }, []);
 
   const takePicture = async () => {
-    if (cameraRef.current) {
-      const photo = await cameraRef.current.takePictureAsync({
-        quality: 1,
-        base64: false,
-      });
+    try {
+      if (cameraRef.current) {
+        const photo = await cameraRef.current.takePictureAsync({
+          quality: 0.8,
+          base64: false,
+        });
 
-      const arPhoto = {
-        uri: photo.uri,
-        timestamp: new Date().toISOString(),
-        cameraType,
-        outfitItems: ['Sample Item 1', 'Sample Item 2'], // Would come from wardrobe
-      };
+        const arPhoto = {
+          uri: photo.uri,
+          timestamp: new Date().toISOString(),
+          cameraType: cameraType === Camera.Constants.Type.front ? 'front' : 'back',
+          outfitItems: ['Virtual Item 1', 'Virtual Item 2'],
+        };
 
-      captureARPhoto(arPhoto);
-      setIsCameraActive(false);
+        captureARPhoto(arPhoto);
+        setIsCameraActive(false);
 
-      Alert.alert(
-        'Photo Captured!',
-        'Your AR try-on photo has been saved to your gallery.',
-        [{ text: 'OK' }]
-      );
+        Alert.alert(
+          'Photo Captured!',
+          'Your AR try-on photo has been saved to your gallery.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Camera capture error:', error);
+      Alert.alert('Error', 'Failed to capture photo. Please try again.');
     }
   };
 
@@ -523,7 +609,11 @@ const ARScreen = () => {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.flipCameraButton}
-              onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
+              onPress={() => setCameraType(
+              cameraType === Camera.Constants.Type.back
+                ? Camera.Constants.Type.front
+                : Camera.Constants.Type.back
+            )}
             >
               <Ionicons name="camera-reverse" size={20} color={COLORS.surface} />
             </TouchableOpacity>
@@ -631,6 +721,14 @@ const CompetitionScreen = () => {
   const { challenges, joinChallenge } = useAppStore();
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [participationModalVisible, setParticipationModalVisible] = useState(false);
+  const [createChallengeVisible, setCreateChallengeVisible] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(true); // Simulating admin access
+
+  // Admin form states
+  const [challengeTitle, setChallengeTitle] = useState('');
+  const [challengeDescription, setChallengeDescription] = useState('');
+  const [challengeIcon, setChallengeIcon] = useState('🎯');
+  const [challengeDeadline, setChallengeDeadline] = useState('7 days');
 
   const handleJoinChallenge = (challenge) => {
     setSelectedChallenge(challenge);
@@ -648,6 +746,35 @@ const CompetitionScreen = () => {
         [{ text: 'OK' }]
       );
     }
+  };
+
+  const handleCreateChallenge = () => {
+    if (isAdmin) {
+      setCreateChallengeVisible(true);
+    } else {
+      Alert.alert('Admin Only', 'Only administrators can create challenges.');
+    }
+  };
+
+  const submitChallenge = () => {
+    if (!challengeTitle.trim() || !challengeDescription.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields.');
+      return;
+    }
+
+    // In a real app, this would save to backend
+    Alert.alert(
+      'Challenge Created!',
+      `"${challengeTitle}" has been successfully created and is now live!`,
+      [{ text: 'OK' }]
+    );
+
+    // Reset form
+    setChallengeTitle('');
+    setChallengeDescription('');
+    setChallengeIcon('🎯');
+    setChallengeDeadline('7 days');
+    setCreateChallengeVisible(false);
   };
 
   const renderChallenge = (challenge) => (
@@ -735,9 +862,11 @@ const CompetitionScreen = () => {
           <Text style={styles.createChallengeSubtext}>
             Start a trend and challenge others!
           </Text>
-          <TouchableOpacity style={styles.createChallengeButton}>
+          <TouchableOpacity style={styles.createChallengeButton} onPress={handleCreateChallenge}>
             <Ionicons name="add-circle" size={24} color={COLORS.surface} />
-            <Text style={styles.createChallengeButtonText}>Create Challenge</Text>
+            <Text style={styles.createChallengeButtonText}>
+              {isAdmin ? 'Create Challenge' : 'Admin Only'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -789,6 +918,75 @@ const CompetitionScreen = () => {
                   <Text style={styles.confirmButtonText}>Join Now</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Create Challenge Modal (Admin Only) */}
+      <Modal
+        visible={createChallengeVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCreateChallengeVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.createChallengeModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setCreateChallengeVisible(false)}>
+                <Ionicons name="close" size={24} color="#1a1a1a" />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Create New Challenge</Text>
+              <TouchableOpacity onPress={submitChallenge}>
+                <Text style={styles.postButton}>Create</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.createChallengeContent}>
+              <Text style={styles.inputLabel}>Challenge Title</Text>
+              <TextInput
+                style={styles.challengeInput}
+                placeholder="Enter challenge title..."
+                placeholderTextColor="#999999"
+                value={challengeTitle}
+                onChangeText={setChallengeTitle}
+              />
+
+              <Text style={styles.inputLabel}>Description</Text>
+              <TextInput
+                style={styles.challengeInput}
+                placeholder="Describe your challenge..."
+                placeholderTextColor="#999999"
+                value={challengeDescription}
+                onChangeText={setChallengeDescription}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <Text style={styles.inputLabel}>Challenge Icon</Text>
+              <View style={styles.iconSelector}>
+                {['🎯', '🏆', '👗', '👔', '👠', '💼', '🎨', '🌟'].map((icon, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.iconOption,
+                      challengeIcon === icon && styles.iconOptionSelected
+                    ]}
+                    onPress={() => setChallengeIcon(icon)}
+                  >
+                    <Text style={styles.iconText}>{icon}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <Text style={styles.inputLabel}>Duration</Text>
+              <TextInput
+                style={styles.challengeInput}
+                placeholder="e.g., 7 days"
+                placeholderTextColor="#999999"
+                value={challengeDeadline}
+                onChangeText={setChallengeDeadline}
+              />
             </View>
           </View>
         </View>
@@ -1048,61 +1246,52 @@ const TabNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#ffffff',
   },
   header: {
-    paddingTop: SIZES.md + 4,
-    paddingBottom: SIZES.md,
-    paddingHorizontal: SIZES.lg,
-    backgroundColor: COLORS.surface,
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
+    borderBottomColor: '#f0f0f0',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 1,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    minHeight: 60,
   },
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
-    height: 50,
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    marginRight: SIZES.md,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
+    width: 45,
+    height: 45,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 10,
+    marginRight: 15,
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 20,
     fontFamily: FONTS.bold,
-    color: '#FF6B6B',
+    color: '#ffffff',
     fontWeight: '900',
-    lineHeight: 24,
+    lineHeight: 20,
   },
   logoSubtext: {
-    fontSize: 10,
-    color: '#666',
-    letterSpacing: 1.5,
+    fontSize: 8,
+    color: '#ffffff',
+    letterSpacing: 1,
     textTransform: 'uppercase',
-    marginTop: -3,
+    marginTop: -2,
     fontWeight: '600',
   },
   titleContainer: {
@@ -1111,17 +1300,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: FONTS.bold,
-    color: COLORS.text,
+    color: '#1a1a1a',
     fontWeight: '700',
-    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 12,
-    color: '#666',
+    color: '#666666',
     marginTop: 2,
-    fontWeight: '500',
+    fontWeight: '400',
   },
   // Profile specific styles
   profileHeader: {
@@ -2081,6 +2269,128 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.surface,
     fontFamily: FONTS.medium,
+  },
+
+  // Floating Action Button
+  floatingActionButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF6B6B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+  },
+
+  // Create Post Modal
+  createPostModal: {
+    backgroundColor: '#ffffff',
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 16,
+    padding: 20,
+  },
+  postButton: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    fontFamily: FONTS.medium,
+    fontWeight: '600',
+  },
+  createPostContent: {
+    marginTop: 20,
+  },
+  postTextInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1a1a1a',
+    minHeight: 120,
+    textAlignVertical: 'top',
+    backgroundColor: '#fafafa',
+  },
+  addImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    marginTop: 16,
+    borderWidth: 2,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: '#fafafa',
+  },
+  addImageText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+
+  // Admin Challenge Creation Modal
+  createChallengeModal: {
+    backgroundColor: '#ffffff',
+    width: '90%',
+    maxHeight: '85%',
+    borderRadius: 16,
+    padding: 20,
+  },
+  createChallengeContent: {
+    marginTop: 20,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#1a1a1a',
+    fontWeight: '600',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  challengeInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#1a1a1a',
+    backgroundColor: '#fafafa',
+    marginBottom: 20,
+  },
+  iconSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  iconOption: {
+    width: 60,
+    height: 60,
+    borderRadius: 12,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    marginBottom: 12,
+  },
+  iconOptionSelected: {
+    backgroundColor: '#FF6B6B',
+    borderColor: '#FF6B6B',
+  },
+  iconText: {
+    fontSize: 24,
   },
 });
 
