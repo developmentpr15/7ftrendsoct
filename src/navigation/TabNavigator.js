@@ -103,8 +103,16 @@ const HomeScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>7Ftrends</Text>
-        <Text style={styles.subtitle}>Your Fashion Feed</Text>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>7F</Text>
+            <Text style={styles.logoSubtext}>trends</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Fashion Feed</Text>
+            <Text style={styles.subtitle}>Discover & Get Inspired</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -209,10 +217,19 @@ const WardrobeScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>My Wardrobe</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
-          <Ionicons name="add" size={24} color={COLORS.surface} />
-        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>7F</Text>
+            <Text style={styles.logoSubtext}>trends</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>My Wardrobe</Text>
+            <Text style={styles.subtitle}>Manage Your Style</Text>
+          </View>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+            <Ionicons name="add" size={24} color={COLORS.surface} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -494,21 +511,30 @@ const ARScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>AR Try-On</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.flipCameraButton}
-            onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
-          >
-            <Ionicons name="camera-reverse" size={24} color={COLORS.surface} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.galleryButton}
-            onPress={() => setShowGallery(true)}
-          >
-            <Ionicons name="images" size={24} color={COLORS.surface} />
-            <Text style={styles.galleryButtonText}>{arPhotos.length}</Text>
-          </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>7F</Text>
+            <Text style={styles.logoSubtext}>trends</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>AR Try-On</Text>
+            <Text style={styles.subtitle}>Virtual Fashion Experience</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.flipCameraButton}
+              onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
+            >
+              <Ionicons name="camera-reverse" size={20} color={COLORS.surface} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.galleryButton}
+              onPress={() => setShowGallery(true)}
+            >
+              <Ionicons name="images" size={20} color={COLORS.surface} />
+              <Text style={styles.galleryButtonText}>{arPhotos.length}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -673,10 +699,19 @@ const CompetitionScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Style Challenges</Text>
-        <TouchableOpacity style={styles.leaderboardButton}>
-          <Ionicons name="trophy" size={20} color={COLORS.surface} />
-        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>7F</Text>
+            <Text style={styles.logoSubtext}>trends</Text>
+          </View>
+          <View style={styles.titleContainer}>
+            <Text style={styles.title}>Style Challenges</Text>
+            <Text style={styles.subtitle}>Compete & Express Yourself</Text>
+          </View>
+          <TouchableOpacity style={styles.leaderboardButton}>
+            <Ionicons name="trophy" size={20} color={COLORS.surface} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -853,19 +888,25 @@ const ProfileScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.profileHeader}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user?.email?.charAt(0)?.toUpperCase() || 'U'}
-            </Text>
+        <View style={styles.headerContent}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>7F</Text>
+            <Text style={styles.logoSubtext}>trends</Text>
           </View>
-          <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>
-              {user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}
-            </Text>
-            <Text style={styles.profileEmail}>
-              {user?.email || 'user@example.com'}
-            </Text>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.email?.charAt(0)?.toUpperCase() || 'U'}
+              </Text>
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>
+                {user?.user_metadata?.username || user?.email?.split('@')[0] || 'User'}
+              </Text>
+              <Text style={styles.profileEmail}>
+                {user?.email || 'user@example.com'}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -1007,23 +1048,80 @@ const TabNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    padding: SIZES.lg,
+    paddingTop: SIZES.md + 4,
+    paddingBottom: SIZES.md,
+    paddingHorizontal: SIZES.lg,
     backgroundColor: COLORS.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: '#e8e8e8',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  title: {
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    minHeight: 60,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 50,
+    height: 50,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    marginRight: SIZES.md,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  logoText: {
     fontSize: 24,
     fontFamily: FONTS.bold,
+    color: '#FF6B6B',
+    fontWeight: '900',
+    lineHeight: 24,
+  },
+  logoSubtext: {
+    fontSize: 10,
+    color: '#666',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: -3,
+    fontWeight: '600',
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontFamily: FONTS.bold,
     color: COLORS.text,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: SIZES.xs,
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+    fontWeight: '500',
   },
   // Profile specific styles
   profileHeader: {
@@ -1329,11 +1427,20 @@ const styles = StyleSheet.create({
 
   // Post styles for Home feed
   postContainer: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#ffffff',
     marginBottom: SIZES.md,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
-    ...SHADOWS.sm,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   postHeader: {
     flexDirection: 'row',
@@ -1419,23 +1526,35 @@ const styles = StyleSheet.create({
 
   // Trending section styles
   trendingSection: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#ffffff',
     padding: SIZES.md,
     marginBottom: SIZES.sm,
-    borderRadius: 12,
-    ...SHADOWS.sm,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   trendingTag: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: SIZES.md,
-    paddingVertical: SIZES.sm,
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: SIZES.md + 4,
+    paddingVertical: SIZES.sm + 2,
     borderRadius: 20,
     marginRight: SIZES.sm,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   trendingTagText: {
     fontSize: 12,
-    color: COLORS.text,
+    color: '#495057',
     fontFamily: FONTS.medium,
+    fontWeight: '600',
   },
   feedContainer: {
     paddingHorizontal: SIZES.md,
@@ -1483,13 +1602,20 @@ const styles = StyleSheet.create({
 
   // Wardrobe specific styles
   addButton: {
-    backgroundColor: COLORS.accent,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    backgroundColor: '#FF6B6B',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    ...SHADOWS.sm,
+    shadowColor: '#FF6B6B',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   quickActionsContainer: {
     flexDirection: 'row',
@@ -1498,20 +1624,30 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.lg,
   },
   quickActionButton: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: '#ffffff',
     padding: SIZES.md,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     flex: 1,
     marginHorizontal: SIZES.sm,
-    ...SHADOWS.sm,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   quickActionText: {
     fontSize: 12,
-    color: COLORS.text,
+    color: '#333',
     fontFamily: FONTS.medium,
     marginTop: SIZES.sm,
     textAlign: 'center',
+    fontWeight: '600',
   },
   categoryItemSelected: {
     backgroundColor: `${COLORS.accent}20`,

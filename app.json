@@ -19,9 +19,10 @@
       "package": "com.sevenftrends.app"
     },
     "statusBar": {
-      "backgroundColor": "#2c2c2c",
-      "style": "light",
-      "translucent": false
+      "backgroundColor": "#ffffff",
+      "style": "dark",
+      "translucent": false,
+      "hidden": false
     },
     "plugins": [
       "expo-camera",
