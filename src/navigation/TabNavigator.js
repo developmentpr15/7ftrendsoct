@@ -3,7 +3,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Image, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Camera from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import {
+  useFonts,
+  Pacifico_400Regular,
+} from '@expo-google-fonts/pacifico';
 import { COLORS, SIZES, FONTS, SHADOWS, CATEGORIES, APP_INFO } from '../utils/constants';
 import useAuthStore from '../store/authStore';
 import useAppStore from '../store/appStore';
@@ -134,14 +138,68 @@ const HomeScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>7F</Text>
-            <Text style={styles.logoSubtext}>trends</Text>
+            <Text style={styles.logoText}>7ftrends</Text>
           </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Fashion Feed</Text>
-            <Text style={styles.subtitle}>Discover & Get Inspired</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="search" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="chatbubble-ellipses" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications" size={20} color="#666666" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
           </View>
         </View>
+      </View>
+
+      {/* Instagram-style Stories */}
+      <View style={styles.storiesContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity style={[styles.storyItem, styles.firstStoryItem]}>
+            <View style={styles.storyAdd}>
+              <Ionicons name="add" size={24} color="#666666" />
+            </View>
+            <Text style={styles.storyAddText}>Your Story</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.storyItem}>
+            <View style={styles.storyCircle}>
+              <Image source={{ uri: 'https://picsum.photos/seed/story1/100/100' }} style={styles.storyImage} />
+            </View>
+            <Text style={styles.storyUsername}>fashionista</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.storyItem}>
+            <View style={styles.storyCircle}>
+              <Image source={{ uri: 'https://picsum.photos/seed/story2/100/100' }} style={styles.storyImage} />
+            </View>
+            <Text style={styles.storyUsername}>styleguru</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.storyItem}>
+            <View style={styles.storyCircle}>
+              <Image source={{ uri: 'https://picsum.photos/seed/story3/100/100' }} style={styles.storyImage} />
+            </View>
+            <Text style={styles.storyUsername}>trendsetter</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.storyItem}>
+            <View style={styles.storyCircle}>
+              <Image source={{ uri: 'https://picsum.photos/seed/story4/100/100' }} style={styles.storyImage} />
+            </View>
+            <Text style={styles.storyUsername}>modelpro</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.storyItem}>
+            <View style={styles.storyCircle}>
+              <Image source={{ uri: 'https://picsum.photos/seed/story5/100/100' }} style={styles.storyImage} />
+            </View>
+            <Text style={styles.storyUsername}>vintage</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -295,12 +353,19 @@ const WardrobeScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>7F</Text>
-            <Text style={styles.logoSubtext}>trends</Text>
+            <Text style={styles.logoText}>7ftrends</Text>
           </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>My Wardrobe</Text>
-            <Text style={styles.subtitle}>Manage Your Style</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="search" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="chatbubble-ellipses" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications" size={20} color="#666666" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
             <Ionicons name="add" size={24} color={COLORS.surface} />
@@ -488,36 +553,59 @@ const WardrobeScreen = () => {
 // Enhanced AR Screen with Real Photo Capture
 const ARScreen = () => {
   const { captureARPhoto, arPhotos, deleteARPhoto } = useAppStore();
-  const [hasPermission, setHasPermission] = useState(null);
-  const [cameraType, setCameraType] = useState(Camera.Constants.Type.front);
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState('front');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
   const cameraRef = React.useRef(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { status } = await Camera.requestCameraPermissionsAsync();
-        setHasPermission(status === 'granted');
-      } catch (error) {
-        console.error('Camera permission error:', error);
-        setHasPermission(false);
-      }
-    })();
-  }, []);
+  if (!permission) {
+    // Camera permissions are still loading
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>AR Try-On</Text>
+        </View>
+        <View style={styles.permissionContainer}>
+          <Ionicons name="camera" size={64} color={COLORS.textSecondary} />
+          <Text style={styles.permissionText}>Requesting camera permission...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!permission.granted) {
+    // Camera permissions are not granted yet
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>AR Try-On</Text>
+        </View>
+        <View style={styles.permissionContainer}>
+          <Ionicons name="camera-off" size={64} color={COLORS.error} />
+          <Text style={styles.permissionText}>Camera permission denied</Text>
+          <Text style={styles.permissionSubtext}>
+            Please enable camera access in your device settings to use AR Try-On
+          </Text>
+          <TouchableOpacity style={styles.startCameraButton} onPress={requestPermission}>
+            <Text style={styles.startCameraButtonText}>Grant Permission</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const takePicture = async () => {
     try {
       if (cameraRef.current) {
         const photo = await cameraRef.current.takePictureAsync({
           quality: 0.8,
-          base64: false,
         });
 
         const arPhoto = {
           uri: photo.uri,
           timestamp: new Date().toISOString(),
-          cameraType: cameraType === Camera.Constants.Type.front ? 'front' : 'back',
+          cameraType: facing,
           outfitItems: ['Virtual Item 1', 'Virtual Item 2'],
         };
 
@@ -563,57 +651,30 @@ const ARScreen = () => {
     Alert.alert('Share Photo', 'Share functionality coming soon!');
   };
 
-  if (hasPermission === null) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>AR Try-On</Text>
-        </View>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera" size={64} color={COLORS.textSecondary} />
-          <Text style={styles.permissionText}>Requesting camera permission...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (hasPermission === false) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.title}>AR Try-On</Text>
-        </View>
-        <View style={styles.permissionContainer}>
-          <Ionicons name="camera-off" size={64} color={COLORS.error} />
-          <Text style={styles.permissionText}>Camera permission denied</Text>
-          <Text style={styles.permissionSubtext}>
-            Please enable camera access in your device settings to use AR Try-On
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>7F</Text>
-            <Text style={styles.logoSubtext}>trends</Text>
+            <Text style={styles.logoText}>7ftrends</Text>
           </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>AR Try-On</Text>
-            <Text style={styles.subtitle}>Virtual Fashion Experience</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="search" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="chatbubble-ellipses" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications" size={20} color="#666666" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.flipCameraButton}
-              onPress={() => setCameraType(
-              cameraType === Camera.Constants.Type.back
-                ? Camera.Constants.Type.front
-                : Camera.Constants.Type.back
-            )}
+              onPress={() => setFacing(current => current === 'back' ? 'front' : 'back')}
             >
               <Ionicons name="camera-reverse" size={20} color={COLORS.surface} />
             </TouchableOpacity>
@@ -629,7 +690,7 @@ const ARScreen = () => {
       </View>
 
       {isCameraActive ? (
-        <Camera.Camera ref={cameraRef} style={styles.camera} type={cameraType}>
+        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
           <View style={styles.cameraOverlay}>
             <View style={styles.arFrame}>
               <View style={[styles.arCorner, { top: -2, left: -2 }]} />
@@ -648,7 +709,7 @@ const ARScreen = () => {
               <Ionicons name="close" size={24} color={COLORS.surface} />
             </TouchableOpacity>
           </View>
-        </Camera.Camera>
+        </CameraView>
       ) : (
         <View style={styles.cameraPlaceholder}>
           <Ionicons name="camera" size={64} color={COLORS.textSecondary} />
@@ -828,12 +889,19 @@ const CompetitionScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>7F</Text>
-            <Text style={styles.logoSubtext}>trends</Text>
+            <Text style={styles.logoText}>7ftrends</Text>
           </View>
-          <View style={styles.titleContainer}>
-            <Text style={styles.title}>Style Challenges</Text>
-            <Text style={styles.subtitle}>Compete & Express Yourself</Text>
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="search" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.headerIconButton}>
+              <Ionicons name="chatbubble-ellipses" size={20} color="#666666" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.notificationButton}>
+              <Ionicons name="notifications" size={20} color="#666666" />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.leaderboardButton}>
             <Ionicons name="trophy" size={20} color={COLORS.surface} />
@@ -1088,8 +1156,7 @@ const ProfileScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>7F</Text>
-            <Text style={styles.logoSubtext}>trends</Text>
+            <Text style={styles.logoText}>7ftrends</Text>
           </View>
           <View style={styles.profileHeader}>
             <View style={styles.avatar}>
@@ -1198,7 +1265,15 @@ const ProfileStackNavigator = () => (
   </ProfileStack.Navigator>
 );
 
-const TabNavigator = () => {
+const TabNavigatorComponent = () => {
+  let [fontsLoaded] = useFonts({
+    Pacifico_400Regular,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -1243,15 +1318,19 @@ const TabNavigator = () => {
   );
 };
 
+const TabNavigator = () => {
+  return <TabNavigatorComponent />;
+};
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
   },
   header: {
-    paddingTop: 20,
+    paddingTop: 50,
     paddingBottom: 16,
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -1273,26 +1352,18 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 45,
-    height: 45,
-    backgroundColor: '#FF6B6B',
-    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 1,
+    backgroundColor: '#7C3AED',
+    borderRadius: 8,
     marginRight: 15,
   },
   logoText: {
     fontSize: 20,
-    fontFamily: FONTS.bold,
-    color: '#ffffff',
-    fontWeight: '900',
-    lineHeight: 20,
-  },
-  logoSubtext: {
-    fontSize: 8,
-    color: '#ffffff',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: -2,
-    fontWeight: '600',
+    fontFamily: 'Pacifico_400Regular',
+    color: '#FDE047',
+    fontWeight: '400',
+    letterSpacing: 0.6,
   },
   titleContainer: {
     flex: 1,
@@ -1375,13 +1446,6 @@ const styles = StyleSheet.create({
     padding: SIZES.lg,
     marginTop: SIZES.sm,
   },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  logoText: {
-    fontSize: 48,
-    marginBottom: SIZES.sm,
-  },
   appName: {
     fontSize: 16,
     fontFamily: FONTS.bold,
@@ -1458,8 +1522,8 @@ const styles = StyleSheet.create({
     padding: SIZES.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontFamily: FONTS.bold,
+    fontSize: 20,
+    fontFamily: 'Pacifico_400Regular',
     color: COLORS.text,
     marginBottom: SIZES.md,
   },
@@ -1744,6 +1808,76 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
     fontWeight: '600',
   },
+  // Stories styles
+  storiesContainer: {
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    paddingVertical: 12,
+    paddingLeft: 20,
+  },
+  storyItem: {
+    alignItems: 'center',
+    marginRight: 16,
+    width: 70,
+  },
+  firstStoryItem: {
+    marginLeft: 0,
+  },
+  storyCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 4,
+    backgroundColor: '#f8f8f8',
+    marginBottom: 4,
+    overflow: 'hidden',
+    shadowColor: '#b873f3',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+    borderColor: '#b873f3',
+  },
+  storyImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 30,
+  },
+  storyAdd: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 4,
+    borderColor: '#b873f3',
+    borderStyle: 'dashed',
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    shadowColor: '#b873f3',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  storyAddText: {
+    fontSize: 12,
+    color: '#666666',
+    textAlign: 'center',
+  },
+  storyUsername: {
+    fontSize: 11,
+    color: '#333333',
+    textAlign: 'center',
+  },
+
   feedContainer: {
     paddingHorizontal: SIZES.md,
   },
@@ -1995,10 +2129,26 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.medium,
   },
 
-  // AR Screen additional styles
+  // Header Actions styles
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  headerIconButton: {
+    padding: 8,
+  },
+  notificationButton: {
+    position: 'relative',
+    padding: 8,
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    backgroundColor: '#ff4444',
+    borderRadius: 4,
   },
   galleryButton: {
     flexDirection: 'row',
