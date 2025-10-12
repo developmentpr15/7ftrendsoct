@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Dimensions, Image, TextInput, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Camera from 'expo-camera';
 import { COLORS, SIZES, FONTS, SHADOWS, CATEGORIES, APP_INFO } from '../utils/constants';
 import useAuthStore from '../store/authStore';
+import useAppStore from '../store/appStore';
 import { signOut } from '../utils/auth';
 import ConnectionStatus from '../components/ConnectionStatus';
 
@@ -16,86 +17,389 @@ const CompetitionStack = createNativeStackNavigator();
 const ARStack = createNativeStackNavigator();
 const ProfileStack = createNativeStackNavigator();
 
-// Simple Home Screen
-const HomeScreen = () => (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Text style={styles.title}>7Ftrends</Text>
-      <Text style={styles.subtitle}>Your Fashion Feed</Text>
-    </View>
+// Enhanced Home Screen with Actionable Feed
+const HomeScreen = () => {
+  const { posts, toggleLike, addComment } = useAppStore();
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [commentText, setCommentText] = useState('');
 
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderTitle}>📸 Feed Coming Soon</Text>
-        <Text style={styles.placeholderText}>
-          See what others are wearing and get inspired!
-        </Text>
-      </View>
+  const handleLike = (postId) => {
+    toggleLike(postId);
+  };
 
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderTitle}>👗 Today's Outfit</Text>
-        <Text style={styles.placeholderText}>
-          AI-powered outfit suggestions based on your wardrobe
-        </Text>
-      </View>
+  const handleComment = (postId) => {
+    setSelectedPost(postId);
+    setCommentModalVisible(true);
+  };
 
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderTitle}>🔥 Trending Now</Text>
-        <Text style={styles.placeholderText}>
-          Discover latest fashion trends and styles
-        </Text>
-      </View>
-    </ScrollView>
-  </View>
-);
+  const submitComment = () => {
+    if (commentText.trim() && selectedPost) {
+      addComment(selectedPost, commentText);
+      setCommentText('');
+      setCommentModalVisible(false);
+      setSelectedPost(null);
+    }
+  };
 
-// Simple Wardrobe Screen
-const WardrobeScreen = () => (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Text style={styles.title}>My Wardrobe</Text>
-    </View>
-
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
-          <Text style={styles.statLabel}>Items</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
-          <Text style={styles.statLabel}>Outfits</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNumber}>0</Text>
-          <Text style={styles.statLabel}>Favorites</Text>
-        </View>
-      </View>
-
-      <View style={styles.categoriesContainer}>
-        <Text style={styles.sectionTitle}>Categories</Text>
-        {CATEGORIES.map((category) => (
-          <View key={category.id} style={styles.categoryItem}>
-            <View style={styles.categoryIcon}>
-              <Text style={styles.categoryEmoji}>{category.icon}</Text>
-            </View>
-            <View style={styles.categoryInfo}>
-              <Text style={styles.categoryName}>{category.name}</Text>
-              <Text style={styles.categoryCount}>0 items</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+  const renderPost = (post) => (
+    <View key={post.id} style={styles.postContainer}>
+      {/* Post Header */}
+      <View style={styles.postHeader}>
+        <View style={styles.postUserInfo}>
+          <Text style={styles.postAvatar}>{post.avatar}</Text>
+          <View>
+            <Text style={styles.postUsername}>{post.username}</Text>
+            <Text style={styles.postTimestamp}>{post.timestamp}</Text>
           </View>
-        ))}
+        </View>
+        <TouchableOpacity>
+          <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
       </View>
-    </ScrollView>
-  </View>
-);
 
-// Enhanced AR Screen with Camera
+      {/* Post Image */}
+      <Image source={{ uri: post.image }} style={styles.postImage} />
+
+      {/* Post Actions */}
+      <View style={styles.postActions}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(post.id)}>
+          <Ionicons
+            name={post.isLiked ? "heart" : "heart-outline"}
+            size={24}
+            color={post.isLiked ? COLORS.like : COLORS.textSecondary}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(post.id)}>
+          <Ionicons name="chatbubble-outline" size={24} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionButton}>
+          <Ionicons name="paper-plane-outline" size={24} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.actionButton, { marginLeft: 'auto' }]}>
+          <Ionicons name="bookmark-outline" size={24} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Post Stats */}
+      <View style={styles.postStats}>
+        <Text style={styles.likesCount}>{post.likes} likes</Text>
+        <Text style={styles.commentsCount}>{post.comments} comments</Text>
+      </View>
+
+      {/* Post Description */}
+      <View style={styles.postDescription}>
+        <Text style={styles.postUsernameText}>{post.username}</Text>
+        <Text style={styles.postCaption}>{post.outfit}</Text>
+        <View style={styles.postTags}>
+          {post.items.map((item, index) => (
+            <Text key={index} style={styles.postTag}>#{item.replace(/\s+/g, '')}</Text>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>7Ftrends</Text>
+        <Text style={styles.subtitle}>Your Fashion Feed</Text>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Trending Section */}
+        <View style={styles.trendingSection}>
+          <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {['#Minimalist', '#StreetStyle', '#Vintage', '#BusinessCasual', '#SummerVibes'].map((tag, index) => (
+              <TouchableOpacity key={index} style={styles.trendingTag}>
+                <Text style={styles.trendingTagText}>{tag}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Posts Feed */}
+        <View style={styles.feedContainer}>
+          {posts.map(renderPost)}
+        </View>
+      </ScrollView>
+
+      {/* Comment Modal */}
+      <Modal
+        visible={commentModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setCommentModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.commentModal}>
+            <View style={styles.commentHeader}>
+              <TouchableOpacity onPress={() => setCommentModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.commentTitle}>Add Comment</Text>
+              <TouchableOpacity onPress={submitComment}>
+                <Text style={styles.commentPostButton}>Post</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Add a comment..."
+              value={commentText}
+              onChangeText={setCommentText}
+              multiline
+              autoFocus
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// Enhanced Wardrobe Screen with Actions
+const WardrobeScreen = () => {
+  const {
+    wardrobeItems,
+    addWardrobeItem,
+    removeWardrobeItem,
+    updateWardrobeItem,
+    getWardrobeStats,
+    getFavoriteItems,
+    getOutfitSuggestions,
+    pickImage,
+    setSelectedCategory
+  } = useAppStore();
+  const [addItemModalVisible, setAddItemModalVisible] = useState(false);
+  const [outfitSuggestionsVisible, setOutfitSuggestionsVisible] = useState(false);
+  const [selectedCategory, setSelectedCategoryLocal] = useState(null);
+
+  const stats = getWardrobeStats();
+  const favoriteItems = getFavoriteItems();
+  const outfitSuggestions = getOutfitSuggestions();
+
+  const handleAddItem = async () => {
+    const result = await pickImage();
+    if (result && !result.canceled) {
+      setAddItemModalVisible(true);
+      setSelectedCategoryLocal(null);
+    }
+  };
+
+  const handleSubmitItem = (name, category, color, brand) => {
+    addWardrobeItem({
+      name,
+      category,
+      color,
+      brand,
+      image: 'https://picsum.photos/seed/' + Date.now() + '/200/200',
+      isFavorite: false,
+      dateAdded: new Date().toISOString(),
+    });
+    setAddItemModalVisible(false);
+  };
+
+  const handleCategoryPress = (category) => {
+    setSelectedCategory(category.id);
+    setSelectedCategoryLocal(category.id);
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>My Wardrobe</Text>
+        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+          <Ionicons name="add" size={24} color={COLORS.surface} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Items</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{Object.keys(stats.byCategory).length}</Text>
+            <Text style={styles.statLabel}>Categories</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statNumber}>{favoriteItems.length}</Text>
+            <Text style={styles.statLabel}>Favorites</Text>
+          </View>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsContainer}>
+          <TouchableOpacity
+            style={styles.quickActionButton}
+            onPress={() => setOutfitSuggestionsVisible(true)}
+          >
+            <Ionicons name="shirt-outline" size={24} color={COLORS.accent} />
+            <Text style={styles.quickActionText}>Get Outfit Ideas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionButton} onPress={handleAddItem}>
+            <Ionicons name="camera-outline" size={24} color={COLORS.accent} />
+            <Text style={styles.quickActionText}>Add Item</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Categories */}
+        <View style={styles.categoriesContainer}>
+          <Text style={styles.sectionTitle}>Categories</Text>
+          {CATEGORIES.map((category) => (
+            <TouchableOpacity
+              key={category.id}
+              style={[styles.categoryItem, selectedCategory === category.id && styles.categoryItemSelected]}
+              onPress={() => handleCategoryPress(category)}
+            >
+              <View style={styles.categoryIcon}>
+                <Text style={styles.categoryEmoji}>{category.icon}</Text>
+              </View>
+              <View style={styles.categoryInfo}>
+                <Text style={styles.categoryName}>{category.name}</Text>
+                <Text style={styles.categoryCount}>
+                  {stats.byCategory[category.id] || 0} items
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Recent Items */}
+        {wardrobeItems.length > 0 && (
+          <View style={styles.recentItemsContainer}>
+            <Text style={styles.sectionTitle}>Recent Items</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {wardrobeItems.slice(-5).map((item) => (
+                <View key={item.id} style={styles.recentItem}>
+                  <Image source={{ uri: item.image }} style={styles.recentItemImage} />
+                  <Text style={styles.recentItemName} numberOfLines={1}>{item.name}</Text>
+                  <TouchableOpacity
+                    style={styles.favoriteButton}
+                    onPress={() => updateWardrobeItem(item.id, { isFavorite: !item.isFavorite })}
+                  >
+                    <Ionicons
+                      name={item.isFavorite ? "heart" : "heart-outline"}
+                      size={16}
+                      color={item.isFavorite ? COLORS.like : COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </ScrollView>
+
+      {/* Add Item Modal */}
+      <Modal
+        visible={addItemModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setAddItemModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.addItemModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setAddItemModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Add New Item</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <TouchableOpacity
+              style={styles.addPhotoButton}
+              onPress={() => console.log('Add photo')}
+            >
+              <Ionicons name="camera" size={32} color={COLORS.textSecondary} />
+              <Text style={styles.addPhotoText}>Add Photo</Text>
+            </TouchableOpacity>
+
+            <View style={styles.formContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Item name"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Brand"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Color"
+                placeholderTextColor={COLORS.textSecondary}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.submitButton}
+              onPress={() => handleSubmitItem('New Item', 'top', 'Blue', 'Brand')}
+            >
+              <Text style={styles.submitButtonText}>Add Item</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Outfit Suggestions Modal */}
+      <Modal
+        visible={outfitSuggestionsVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setOutfitSuggestionsVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.outfitModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setOutfitSuggestionsVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Outfit Suggestions</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.outfitSuggestionsList}>
+              {outfitSuggestions.map((outfit) => (
+                <View key={outfit.id} style={styles.outfitSuggestion}>
+                  <Text style={styles.outfitName}>{outfit.name}</Text>
+                  <Text style={styles.outfitOccasion}>{outfit.occasion}</Text>
+                  <View style={styles.outfitItems}>
+                    {outfit.items.map((item, index) => (
+                      <View key={index} style={styles.outfitItem}>
+                        <Image source={{ uri: item.image }} style={styles.outfitItemImage} />
+                        <Text style={styles.outfitItemName}>{item.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <TouchableOpacity style={styles.tryOutfitButton}>
+                    <Text style={styles.tryOutfitButtonText}>Try This Outfit</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+// Enhanced AR Screen with Real Photo Capture
 const ARScreen = () => {
+  const { captureARPhoto, arPhotos, deleteARPhoto } = useAppStore();
   const [hasPermission, setHasPermission] = useState(null);
   const [cameraType, setCameraType] = useState('front');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const cameraRef = React.useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -103,6 +407,58 @@ const ARScreen = () => {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 1,
+        base64: false,
+      });
+
+      const arPhoto = {
+        uri: photo.uri,
+        timestamp: new Date().toISOString(),
+        cameraType,
+        outfitItems: ['Sample Item 1', 'Sample Item 2'], // Would come from wardrobe
+      };
+
+      captureARPhoto(arPhoto);
+      setIsCameraActive(false);
+
+      Alert.alert(
+        'Photo Captured!',
+        'Your AR try-on photo has been saved to your gallery.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleGalleryItemPress = (photo) => {
+    Alert.alert(
+      'AR Photo',
+      `Captured on ${new Date(photo.timestamp).toLocaleDateString()}`,
+      [
+        { text: 'Delete', style: 'destructive', onPress: () => handleDeletePhoto(photo.id) },
+        { text: 'Share', onPress: () => handleSharePhoto(photo) },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  const handleDeletePhoto = (photoId) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to delete this photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: () => deleteARPhoto(photoId) }
+      ]
+    );
+  };
+
+  const handleSharePhoto = (photo) => {
+    Alert.alert('Share Photo', 'Share functionality coming soon!');
+  };
 
   if (hasPermission === null) {
     return (
@@ -139,29 +495,41 @@ const ARScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>AR Try-On</Text>
-        <TouchableOpacity
-          style={styles.flipCameraButton}
-          onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
-        >
-          <Ionicons name="camera-reverse" size={24} color={COLORS.surface} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.flipCameraButton}
+            onPress={() => setCameraType(cameraType === 'back' ? 'front' : 'back')}
+          >
+            <Ionicons name="camera-reverse" size={24} color={COLORS.surface} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.galleryButton}
+            onPress={() => setShowGallery(true)}
+          >
+            <Ionicons name="images" size={24} color={COLORS.surface} />
+            <Text style={styles.galleryButtonText}>{arPhotos.length}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {isCameraActive ? (
-        <Camera.Camera style={styles.camera} type={cameraType}>
+        <Camera.Camera ref={cameraRef} style={styles.camera} type={cameraType}>
           <View style={styles.cameraOverlay}>
             <View style={styles.arFrame}>
-              <View style={styles.arCorner} />
-              <View style={styles.arCorner} />
-              <View style={styles.arCorner} />
-              <View style={styles.arCorner} />
+              <View style={[styles.arCorner, { top: -2, left: -2 }]} />
+              <View style={[styles.arCorner, { top: -2, right: -2 }]} />
+              <View style={[styles.arCorner, { bottom: -2, left: -2 }]} />
+              <View style={[styles.arCorner, { bottom: -2, right: -2 }]} />
             </View>
             <Text style={styles.arText}>Position clothing item here</Text>
-            <TouchableOpacity
-              style={styles.captureButton}
-              onPress={() => console.log('Capture AR photo')}
-            >
+            <TouchableOpacity style={styles.captureButton} onPress={takePicture}>
               <View style={styles.captureButtonInner} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.exitCameraButton}
+              onPress={() => setIsCameraActive(false)}
+            >
+              <Ionicons name="close" size={24} color={COLORS.surface} />
             </TouchableOpacity>
           </View>
         </Camera.Camera>
@@ -181,34 +549,218 @@ const ARScreen = () => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* AR Photos Gallery Modal */}
+      <Modal
+        visible={showGallery}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowGallery(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.galleryModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowGallery(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>My AR Photos</Text>
+              <TouchableOpacity onPress={() => setShowGallery(false)}>
+                <Text style={styles.doneButton}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            {arPhotos.length === 0 ? (
+              <View style={styles.emptyGallery}>
+                <Ionicons name="camera-outline" size={48} color={COLORS.textSecondary} />
+                <Text style={styles.emptyGalleryText}>No AR photos yet</Text>
+                <Text style={styles.emptyGallerySubtext}>
+                  Take photos to see them here
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.galleryList}>
+                {arPhotos.map((photo) => (
+                  <TouchableOpacity
+                    key={photo.id}
+                    style={styles.galleryItem}
+                    onPress={() => handleGalleryItemPress(photo)}
+                  >
+                    <Image source={{ uri: photo.uri }} style={styles.galleryImage} />
+                    <Text style={styles.galleryDate}>
+                      {new Date(photo.timestamp).toLocaleDateString()}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
-// Simple Competition Screen
-const CompetitionScreen = () => (
-  <View style={styles.container}>
-    <View style={styles.header}>
-      <Text style={styles.title}>Style Challenges</Text>
+// Enhanced Competition Screen with Actions
+const CompetitionScreen = () => {
+  const { challenges, joinChallenge } = useAppStore();
+  const [selectedChallenge, setSelectedChallenge] = useState(null);
+  const [participationModalVisible, setParticipationModalVisible] = useState(false);
+
+  const handleJoinChallenge = (challenge) => {
+    setSelectedChallenge(challenge);
+    setParticipationModalVisible(true);
+  };
+
+  const confirmParticipation = () => {
+    if (selectedChallenge) {
+      joinChallenge(selectedChallenge.id);
+      setParticipationModalVisible(false);
+
+      Alert.alert(
+        'Challenge Joined!',
+        `You've successfully joined the "${selectedChallenge.title}" challenge.`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const renderChallenge = (challenge) => (
+    <View key={challenge.id} style={styles.challengeContainer}>
+      <View style={styles.challengeHeader}>
+        <View style={styles.challengeIconContainer}>
+          <Text style={styles.challengeIcon}>{challenge.icon}</Text>
+        </View>
+        <View style={styles.challengeInfo}>
+          <Text style={styles.challengeTitle}>{challenge.title}</Text>
+          <Text style={styles.challengeDescription}>{challenge.description}</Text>
+        </View>
+        <TouchableOpacity>
+          <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.challengeStats}>
+        <View style={styles.challengeStat}>
+          <Ionicons name="people" size={16} color={COLORS.accent} />
+          <Text style={styles.challengeStatText}>{challenge.participants} participants</Text>
+        </View>
+        <View style={[styles.challengeStat, challenge.isActive ? styles.activeChallenge : styles.inactiveChallenge]}>
+          <Ionicons
+            name={challenge.isActive ? "time" : "checkmark-circle"}
+            size={16}
+            color={challenge.isActive ? COLORS.warning : COLORS.success}
+          />
+          <Text style={styles.challengeStatText}>{challenge.deadline}</Text>
+        </View>
+      </View>
+
+      <View style={styles.challengeFooter}>
+        <TouchableOpacity style={styles.challengeButton}>
+          <Text style={styles.challengeButtonText}>View Details</Text>
+        </TouchableOpacity>
+        {challenge.isActive && (
+          <TouchableOpacity
+            style={[styles.challengeButton, styles.joinButton]}
+            onPress={() => handleJoinChallenge(challenge)}
+          >
+            <Text style={styles.joinButtonText}>Join Challenge</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
+  );
 
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderTitle}>🏆 Weekly Challenge</Text>
-        <Text style={styles.placeholderText}>
-          Theme: Summer Vibes - Show your best summer outfit!
-        </Text>
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Style Challenges</Text>
+        <TouchableOpacity style={styles.leaderboardButton}>
+          <Ionicons name="trophy" size={20} color={COLORS.surface} />
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderTitle}>🎯 Brand Challenge</Text>
-        <Text style={styles.placeholderText}>
-          Partner with sustainable brands for eco-friendly fashion
-        </Text>
-      </View>
-    </ScrollView>
-  </View>
-);
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Active Challenges Section */}
+        <View style={styles.sectionContainer}>
+          <Text style={styles.sectionTitle}>Active Challenges</Text>
+          {challenges.filter(c => c.isActive).map(renderChallenge)}
+        </View>
+
+        {/* Past Challenges Section */}
+        {challenges.some(c => !c.isActive) && (
+          <View style={styles.sectionContainer}>
+            <Text style={styles.sectionTitle}>Past Challenges</Text>
+            {challenges.filter(c => !c.isActive).map(renderChallenge)}
+          </View>
+        )}
+
+        {/* Create Challenge Section */}
+        <View style={styles.createChallengeContainer}>
+          <Text style={styles.createChallengeTitle}>Create Your Own Challenge</Text>
+          <Text style={styles.createChallengeSubtext}>
+            Start a trend and challenge others!
+          </Text>
+          <TouchableOpacity style={styles.createChallengeButton}>
+            <Ionicons name="add-circle" size={24} color={COLORS.surface} />
+            <Text style={styles.createChallengeButtonText}>Create Challenge</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* Participation Modal */}
+      <Modal
+        visible={participationModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setParticipationModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.participationModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setParticipationModalVisible(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Join Challenge</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <View style={styles.participationContent}>
+              <View style={styles.challengePreview}>
+                <Text style={styles.challengePreviewIcon}>{selectedChallenge?.icon}</Text>
+                <Text style={styles.challengePreviewTitle}>{selectedChallenge?.title}</Text>
+                <Text style={styles.challengePreviewDesc}>{selectedChallenge?.description}</Text>
+              </View>
+
+              <View style={styles.participationInfo}>
+                <Text style={styles.participationTitle}>
+                  Ready to join "{selectedChallenge?.title}"?
+                </Text>
+                <Text style={styles.participationSubtext}>
+                  You'll compete with {selectedChallenge?.participants} other fashion enthusiasts
+                </Text>
+              </View>
+
+              <View style={styles.participationActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setParticipationModalVisible(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Maybe Later</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.confirmButton}
+                  onPress={confirmParticipation}
+                >
+                  <Text style={styles.confirmButtonText}>Join Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
 
 // Enhanced Profile Screen
 const ProfileScreen = () => {
@@ -243,6 +795,49 @@ const ProfileScreen = () => {
         },
       ]
     );
+  };
+
+  const handleMenuItemPress = (item) => {
+    const actions = {
+      wardrobe: () => {
+        Alert.alert('My Wardrobe', 'Open your wardrobe to manage your clothing items and create outfits.');
+      },
+      favorites: () => {
+        Alert.alert('My Favorites', 'View and manage your favorite fashion items and saved looks.');
+      },
+      outfits: () => {
+        Alert.alert('Outfit History', 'See your past outfit combinations and get inspired.');
+      },
+      challenges: () => {
+        Alert.alert('Style Challenges', 'View active challenges and join fashion competitions.');
+      },
+      settings: () => {
+        Alert.alert('Settings', 'Customize your app preferences and account settings.');
+      },
+      help: () => {
+        Alert.alert(
+          'Help & Feedback',
+          'Need assistance? Contact our support team or check the FAQ section.',
+          [
+            { text: 'View FAQ' },
+            { text: 'Contact Support' },
+            { text: 'Cancel' }
+          ]
+        );
+      },
+      about: () => {
+        Alert.alert(
+          'About 7Ftrends',
+          `Version: ${APP_INFO.version}\n\nYour digital fashion companion for discovering trends, managing your wardrobe, and expressing your unique style.\n\nCreated with ❤️ for fashion enthusiasts everywhere.`,
+          [{ text: 'OK' }]
+        );
+      }
+    };
+
+    const action = actions[item.id];
+    if (action) {
+      action();
+    }
   };
 
   const menuItems = [
@@ -299,10 +894,7 @@ const ProfileScreen = () => {
             <TouchableOpacity
               key={item.id}
               style={styles.menuItem}
-              onPress={() => {
-                // Handle menu item press
-                console.log(`Pressed ${item.title}`);
-              }}
+              onPress={() => handleMenuItemPress(item)}
             >
               <View style={[styles.menuIcon, { backgroundColor: `${item.color}20` }]}>
                 <Ionicons name={item.icon} size={24} color={item.color} />
@@ -733,6 +1325,626 @@ const styles = StyleSheet.create({
     fontSize: FONTS.sizes.md,
     fontFamily: FONTS.medium,
     marginLeft: SIZES.sm,
+  },
+
+  // Post styles for Home feed
+  postContainer: {
+    backgroundColor: COLORS.surface,
+    marginBottom: SIZES.md,
+    borderRadius: 12,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SIZES.md,
+  },
+  postUserInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  postAvatar: {
+    fontSize: 32,
+    marginRight: SIZES.md,
+  },
+  postUsername: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  postTimestamp: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  postImage: {
+    width: '100%',
+    height: 400,
+    backgroundColor: COLORS.background,
+  },
+  postActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: SIZES.md,
+    paddingTop: SIZES.sm,
+  },
+  actionButton: {
+    marginRight: SIZES.lg,
+  },
+  postStats: {
+    flexDirection: 'row',
+    paddingHorizontal: SIZES.md,
+    paddingBottom: SIZES.sm,
+  },
+  likesCount: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginRight: SIZES.lg,
+  },
+  commentsCount: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  postDescription: {
+    paddingHorizontal: SIZES.md,
+    paddingBottom: SIZES.md,
+  },
+  postUsernameText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginRight: SIZES.sm,
+  },
+  postCaption: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 18,
+  },
+  postTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: SIZES.sm,
+  },
+  postTag: {
+    fontSize: 12,
+    color: COLORS.accent,
+    marginRight: SIZES.sm,
+    marginBottom: SIZES.xs,
+  },
+
+  // Trending section styles
+  trendingSection: {
+    backgroundColor: COLORS.surface,
+    padding: SIZES.md,
+    marginBottom: SIZES.sm,
+    borderRadius: 12,
+    ...SHADOWS.sm,
+  },
+  trendingTag: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: 20,
+    marginRight: SIZES.sm,
+  },
+  trendingTagText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontFamily: FONTS.medium,
+  },
+  feedContainer: {
+    paddingHorizontal: SIZES.md,
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  commentModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  commentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  commentTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  commentPostButton: {
+    fontSize: 16,
+    color: COLORS.accent,
+    fontFamily: FONTS.medium,
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: SIZES.md,
+    fontSize: 14,
+    color: COLORS.text,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+
+  // Wardrobe specific styles
+  addButton: {
+    backgroundColor: COLORS.accent,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    margin: SIZES.md,
+    marginBottom: SIZES.lg,
+  },
+  quickActionButton: {
+    backgroundColor: COLORS.surface,
+    padding: SIZES.md,
+    borderRadius: 12,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: SIZES.sm,
+    ...SHADOWS.sm,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: COLORS.text,
+    fontFamily: FONTS.medium,
+    marginTop: SIZES.sm,
+    textAlign: 'center',
+  },
+  categoryItemSelected: {
+    backgroundColor: `${COLORS.accent}20`,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  recentItemsContainer: {
+    margin: SIZES.md,
+  },
+  recentItem: {
+    backgroundColor: COLORS.surface,
+    padding: SIZES.sm,
+    borderRadius: 8,
+    marginRight: SIZES.sm,
+    alignItems: 'center',
+    width: 100,
+    ...SHADOWS.sm,
+  },
+  recentItemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginBottom: SIZES.sm,
+    backgroundColor: COLORS.background,
+  },
+  recentItemName: {
+    fontSize: 12,
+    color: COLORS.text,
+    textAlign: 'center',
+    marginBottom: SIZES.sm,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 2,
+    ...SHADOWS.xs,
+  },
+
+  // Add Item Modal styles
+  addItemModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SIZES.lg,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  addPhotoButton: {
+    backgroundColor: COLORS.background,
+    padding: SIZES.lg,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  addPhotoText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.sm,
+  },
+  formContainer: {
+    marginBottom: SIZES.lg,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 8,
+    padding: SIZES.md,
+    fontSize: 14,
+    color: COLORS.text,
+    marginBottom: SIZES.md,
+    backgroundColor: COLORS.background,
+  },
+  submitButton: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: SIZES.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  submitButtonText: {
+    color: COLORS.surface,
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+  },
+
+  // Outfit Suggestions Modal styles
+  outfitModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  outfitSuggestionsList: {
+    maxHeight: 400,
+  },
+  outfitSuggestion: {
+    backgroundColor: COLORS.background,
+    padding: SIZES.md,
+    borderRadius: 8,
+    marginBottom: SIZES.md,
+  },
+  outfitName: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+  },
+  outfitOccasion: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: SIZES.md,
+  },
+  outfitItems: {
+    flexDirection: 'row',
+    marginBottom: SIZES.md,
+  },
+  outfitItem: {
+    alignItems: 'center',
+    marginRight: SIZES.md,
+  },
+  outfitItemImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+    marginBottom: SIZES.sm,
+    backgroundColor: COLORS.surface,
+  },
+  outfitItemName: {
+    fontSize: 10,
+    color: COLORS.text,
+    textAlign: 'center',
+    width: 50,
+  },
+  tryOutfitButton: {
+    backgroundColor: COLORS.accent,
+    paddingVertical: SIZES.sm,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  tryOutfitButtonText: {
+    color: COLORS.surface,
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+  },
+
+  // AR Screen additional styles
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  galleryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: SIZES.md,
+    paddingVertical: SIZES.sm,
+    borderRadius: 20,
+    marginLeft: SIZES.sm,
+  },
+  galleryButtonText: {
+    color: COLORS.surface,
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    marginLeft: SIZES.sm,
+  },
+  exitCameraButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: SIZES.sm,
+  },
+  galleryModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    height: '80%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  doneButton: {
+    fontSize: 16,
+    color: COLORS.accent,
+    fontFamily: FONTS.medium,
+  },
+  emptyGallery: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyGalleryText: {
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.md,
+  },
+  emptyGallerySubtext: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.sm,
+    textAlign: 'center',
+  },
+  galleryList: {
+    flex: 1,
+  },
+  galleryItem: {
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  galleryImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 8,
+    backgroundColor: COLORS.background,
+  },
+  galleryDate: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.sm,
+  },
+
+  // Competition Screen styles
+  leaderboardButton: {
+    backgroundColor: COLORS.accent,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  sectionContainer: {
+    marginBottom: SIZES.lg,
+  },
+  challengeContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: SIZES.md,
+    marginBottom: SIZES.md,
+    ...SHADOWS.sm,
+  },
+  challengeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: SIZES.md,
+  },
+  challengeIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: COLORS.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SIZES.md,
+  },
+  challengeIcon: {
+    fontSize: 24,
+  },
+  challengeInfo: {
+    flex: 1,
+  },
+  challengeTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+  },
+  challengeDescription: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+  challengeStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SIZES.md,
+  },
+  challengeStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  challengeStatText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginLeft: SIZES.xs,
+  },
+  activeChallenge: {
+    color: COLORS.warning,
+  },
+  inactiveChallenge: {
+    color: COLORS.success,
+  },
+  challengeFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  challengeButton: {
+    flex: 1,
+    paddingVertical: SIZES.sm,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    marginRight: SIZES.sm,
+  },
+  challengeButtonText: {
+    fontSize: 14,
+    color: COLORS.text,
+    fontFamily: FONTS.medium,
+  },
+  createChallengeContainer: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: SIZES.lg,
+    alignItems: 'center',
+    ...SHADOWS.sm,
+  },
+  createChallengeTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+  },
+  createChallengeSubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SIZES.md,
+  },
+  createChallengeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.md,
+    borderRadius: 8,
+    ...SHADOWS.sm,
+  },
+  createChallengeButtonText: {
+    color: COLORS.surface,
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    marginLeft: SIZES.sm,
+  },
+
+  // Participation Modal styles
+  participationModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  participationContent: {
+    alignItems: 'center',
+  },
+  challengePreview: {
+    alignItems: 'center',
+    marginBottom: SIZES.lg,
+  },
+  challengePreviewIcon: {
+    fontSize: 48,
+    marginBottom: SIZES.sm,
+  },
+  challengePreviewTitle: {
+    fontSize: 18,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+    textAlign: 'center',
+  },
+  challengePreviewDesc: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  participationInfo: {
+    marginBottom: SIZES.lg,
+  },
+  participationTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+    textAlign: 'center',
+  },
+  participationSubtext: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  participationActions: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: SIZES.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    marginRight: SIZES.sm,
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    color: COLORS.text,
+    fontFamily: FONTS.medium,
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: SIZES.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: COLORS.accent,
+    marginLeft: SIZES.sm,
+    ...SHADOWS.sm,
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    color: COLORS.surface,
+    fontFamily: FONTS.medium,
   },
 });
 
