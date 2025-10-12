@@ -14,6 +14,25 @@ import useAppStore from '../store/appStore';
 import { signOut } from '../utils/auth';
 import ConnectionStatus from '../components/ConnectionStatus';
 
+// Countries data with flags
+const COUNTRIES = [
+  { code: 'US', name: 'United States', flag: '🇺🇸' },
+  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
+  { code: 'CA', name: 'Canada', flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia', flag: '🇦🇺' },
+  { code: 'FR', name: 'France', flag: '🇫🇷' },
+  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
+  { code: 'IT', name: 'Italy', flag: '🇮🇹' },
+  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
+  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
+  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
+  { code: 'CN', name: 'China', flag: '🇨🇳' },
+  { code: 'IN', name: 'India', flag: '🇮🇳' },
+  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
+  { code: 'MX', name: 'Mexico', flag: '🇲🇽' },
+  { code: 'AE', name: 'UAE', flag: '🇦🇪' },
+];
+
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
 const WardrobeStack = createNativeStackNavigator();
@@ -30,6 +49,11 @@ const HomeScreen = () => {
   const [createPostVisible, setCreatePostVisible] = useState(false);
   const [newPostText, setNewPostText] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // New states for country and hashtag filtering
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]); // Default to US
+  const [selectedHashtag, setSelectedHashtag] = useState(null);
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
 
   const handleLike = (postId) => {
     toggleLike(postId);
@@ -72,6 +96,28 @@ const HomeScreen = () => {
         { text: 'Report', onPress: () => Alert.alert('Report', 'Report functionality coming soon!') },
         { text: 'Cancel', style: 'cancel' }
       ]
+    );
+  };
+
+  const handleHashtagPress = (hashtag) => {
+    setSelectedHashtag(hashtag);
+  };
+
+  const handleBackToAllPosts = () => {
+    setSelectedHashtag(null);
+  };
+
+  const handleCountrySelect = (country) => {
+    setSelectedCountry(country);
+    setShowCountrySelector(false);
+  };
+
+  const getFilteredPosts = () => {
+    if (!selectedHashtag) return posts;
+
+    return posts.filter(post =>
+      post.items.some(item => `#${item.replace(/\s+/g, '')}` === selectedHashtag) ||
+      post.outfit.toLowerCase().includes(selectedHashtag.substring(1).toLowerCase())
     );
   };
 
@@ -126,7 +172,12 @@ const HomeScreen = () => {
         <Text style={styles.postCaption}>{post.outfit}</Text>
         <View style={styles.postTags}>
           {post.items.map((item, index) => (
-            <Text key={index} style={styles.postTag}>#{item.replace(/\s+/g, '')}</Text>
+            <TouchableOpacity
+              key={index}
+              onPress={() => handleHashtagPress(`#${item.replace(/\s+/g, '')}`)}
+            >
+              <Text style={styles.postTag}>#{item.replace(/\s+/g, '')}</Text>
+            </TouchableOpacity>
           ))}
         </View>
       </View>
@@ -151,64 +202,85 @@ const HomeScreen = () => {
               <Ionicons name="notifications" size={20} color="#666666" />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.countrySelector}
+              onPress={() => setShowCountrySelector(true)}
+            >
+              <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      {/* Instagram-style Stories */}
-      <View style={styles.storiesContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity style={[styles.storyItem, styles.firstStoryItem]}>
-            <View style={styles.storyAdd}>
-              <Ionicons name="add" size={24} color="#666666" />
-            </View>
-            <Text style={styles.storyAddText}>Your Story</Text>
-          </TouchableOpacity>
+      {/* Instagram-style Stories - Hidden when hashtag is selected */}
+      {!selectedHashtag && (
+        <View style={styles.storiesContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <TouchableOpacity style={[styles.storyItem, styles.firstStoryItem]}>
+              <View style={styles.storyAdd}>
+                <Ionicons name="add" size={24} color="#666666" />
+              </View>
+              <Text style={styles.storyAddText}>Your Story</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.storyItem}>
-            <View style={styles.storyCircle}>
-              <Image source={{ uri: 'https://picsum.photos/seed/story1/100/100' }} style={styles.storyImage} />
-            </View>
-            <Text style={styles.storyUsername}>fashionista</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.storyItem}>
+              <View style={styles.storyCircle}>
+                <Image source={{ uri: 'https://picsum.photos/seed/story1/100/100' }} style={styles.storyImage} />
+              </View>
+              <Text style={styles.storyUsername}>fashionista</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.storyItem}>
-            <View style={styles.storyCircle}>
-              <Image source={{ uri: 'https://picsum.photos/seed/story2/100/100' }} style={styles.storyImage} />
-            </View>
-            <Text style={styles.storyUsername}>styleguru</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.storyItem}>
+              <View style={styles.storyCircle}>
+                <Image source={{ uri: 'https://picsum.photos/seed/story2/100/100' }} style={styles.storyImage} />
+              </View>
+              <Text style={styles.storyUsername}>styleguru</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.storyItem}>
-            <View style={styles.storyCircle}>
-              <Image source={{ uri: 'https://picsum.photos/seed/story3/100/100' }} style={styles.storyImage} />
-            </View>
-            <Text style={styles.storyUsername}>trendsetter</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.storyItem}>
+              <View style={styles.storyCircle}>
+                <Image source={{ uri: 'https://picsum.photos/seed/story3/100/100' }} style={styles.storyImage} />
+              </View>
+              <Text style={styles.storyUsername}>trendsetter</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.storyItem}>
-            <View style={styles.storyCircle}>
-              <Image source={{ uri: 'https://picsum.photos/seed/story4/100/100' }} style={styles.storyImage} />
-            </View>
-            <Text style={styles.storyUsername}>modelpro</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.storyItem}>
+              <View style={styles.storyCircle}>
+                <Image source={{ uri: 'https://picsum.photos/seed/story4/100/100' }} style={styles.storyImage} />
+              </View>
+              <Text style={styles.storyUsername}>modelpro</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.storyItem}>
-            <View style={styles.storyCircle}>
-              <Image source={{ uri: 'https://picsum.photos/seed/story5/100/100' }} style={styles.storyImage} />
-            </View>
-            <Text style={styles.storyUsername}>vintage</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
+            <TouchableOpacity style={styles.storyItem}>
+              <View style={styles.storyCircle}>
+                <Image source={{ uri: 'https://picsum.photos/seed/story5/100/100' }} style={styles.storyImage} />
+              </View>
+              <Text style={styles.storyUsername}>vintage</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      )}
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Trending Section */}
         <View style={styles.trendingSection}>
           <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
+          {selectedHashtag && (
+            <View style={styles.selectedHashtagContainer}>
+              <TouchableOpacity style={styles.backButton} onPress={handleBackToAllPosts}>
+                <Ionicons name="chevron-back" size={16} color="#666666" />
+              </TouchableOpacity>
+              <Text style={styles.selectedHashtagText}>🔥 {selectedHashtag}</Text>
+              <Text style={styles.showingResultsText}>Showing filtered results</Text>
+            </View>
+          )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             {['#Minimalist', '#StreetStyle', '#Vintage', '#BusinessCasual', '#SummerVibes'].map((tag, index) => (
-              <TouchableOpacity key={index} style={styles.trendingTag}>
+              <TouchableOpacity
+                key={index}
+                style={styles.trendingTag}
+                onPress={() => handleHashtagPress(tag)}
+              >
                 <Text style={styles.trendingTagText}>{tag}</Text>
               </TouchableOpacity>
             ))}
@@ -217,7 +289,7 @@ const HomeScreen = () => {
 
         {/* Posts Feed */}
         <View style={styles.feedContainer}>
-          {posts.map(renderPost)}
+          {getFilteredPosts().map(renderPost)}
         </View>
       </ScrollView>
 
@@ -294,6 +366,48 @@ const HomeScreen = () => {
                 <Text style={styles.addImageText}>Add Photo</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Country Selector Modal */}
+      <Modal
+        visible={showCountrySelector}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCountrySelector(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.countryModal}>
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowCountrySelector(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Select Country</Text>
+              <View style={{ width: 24 }} />
+            </View>
+
+            <ScrollView style={styles.countryList}>
+              {COUNTRIES.map((country) => (
+                <TouchableOpacity
+                  key={country.code}
+                  style={[
+                    styles.countryItem,
+                    selectedCountry.code === country.code && styles.countryItemSelected
+                  ]}
+                  onPress={() => handleCountrySelect(country)}
+                >
+                  <Text style={styles.countryFlagLarge}>{country.flag}</Text>
+                  <View style={styles.countryInfo}>
+                    <Text style={styles.countryName}>{country.name}</Text>
+                    <Text style={styles.countryCode}>{country.code}</Text>
+                  </View>
+                  {selectedCountry.code === country.code && (
+                    <Ionicons name="checkmark" size={20} color={COLORS.accent} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1365,6 +1479,40 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: 0.6,
   },
+  countrySelector: {
+    marginLeft: 8,
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  countryFlag: {
+    fontSize: 18,
+  },
+  // Hashtag header styles
+  hashtagHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 30,
+    paddingVertical: 8,
+    backgroundColor: '#f8f9fa',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  backButton: {
+    padding: 4,
+  },
+  hashtagTitle: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    fontWeight: '600',
+  },
+  spacer: {
+    width: 28,
+  },
   titleContainer: {
     flex: 1,
     alignItems: 'flex-start',
@@ -1525,7 +1673,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Pacifico_400Regular',
     color: COLORS.text,
-    marginBottom: SIZES.md,
+    marginBottom: 6,
   },
   categoryItem: {
     flexDirection: 'row',
@@ -1807,6 +1955,32 @@ const styles = StyleSheet.create({
     color: '#495057',
     fontFamily: FONTS.medium,
     fontWeight: '600',
+  },
+  // Selected hashtag container styles
+  selectedHashtagContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginTop: 4,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  selectedHashtagText: {
+    fontSize: 14,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    fontWeight: '600',
+    marginLeft: 8,
+    flex: 1,
+  },
+  showingResultsText: {
+    fontSize: 11,
+    color: COLORS.textSecondary,
+    fontStyle: 'italic',
   },
   // Stories styles
   storiesContainer: {
@@ -2541,6 +2715,46 @@ const styles = StyleSheet.create({
   },
   iconText: {
     fontSize: 24,
+  },
+
+  // Country Selector Modal styles
+  countryModal: {
+    backgroundColor: COLORS.surface,
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: SIZES.md,
+  },
+  countryList: {
+    flex: 1,
+  },
+  countryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: SIZES.md,
+    paddingHorizontal: SIZES.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  countryItemSelected: {
+    backgroundColor: `${COLORS.accent}15`,
+  },
+  countryFlagLarge: {
+    fontSize: 28,
+    marginRight: SIZES.md,
+  },
+  countryInfo: {
+    flex: 1,
+  },
+  countryName: {
+    fontSize: 16,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  countryCode: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 });
 
