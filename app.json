@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "7Ftrends",
+    "slug": "7ftrends",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#2c2c2c"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "backgroundColor": "#2c2c2c",
+      "package": "com.sevenftrends.app"
+    },
+    "statusBar": {
+      "backgroundColor": "#2c2c2c",
+      "style": "light",
+      "translucent": false
+    },
+    "plugins": [
+      "expo-camera",
+      "expo-image-picker",
+      "expo-font"
+    ]
+  }
+}
