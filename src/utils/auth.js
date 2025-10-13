@@ -100,6 +100,18 @@ export const signIn = async (email, password) => {
         };
       }
 
+      // Handle invalid credentials specifically
+      if (error.message.includes('Invalid login credentials') ||
+          error.message.includes('invalid_credentials')) {
+        return {
+          data: null,
+          error: {
+            message: 'Invalid email or password. Please check your credentials or create a new account.',
+            isInvalidCredentials: true
+          }
+        };
+      }
+
       throw error;
     }
 
