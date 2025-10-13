@@ -1,0 +1,48 @@
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  mode: "release"  # debug or release
+  read_timeout: 30  # seconds
+  write_timeout: 30 # seconds
+  idle_timeout: 60  # seconds
+
+database:
+  host: "localhost"
+  port: 5432
+  user: "postgres"
+  password: ""
+  name: "7ftrends"
+  ssl_mode: "require"
+
+supabase:
+  url: "https://your-project.supabase.co"
+  key: "your-anon-key"
+  service_key: "your-service-key"
+  project_id: "your-project-id"
+
+auth:
+  jwt_secret: "your-super-secret-jwt-key"
+  jwt_expiration: 3600      # 1 hour in seconds
+  refresh_expiration: 604800 # 7 days in seconds
+
+storage:
+  max_file_size: 5242880    # 5MB in bytes
+  allowed_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/webp"
+  bucket_name: "7ftrends-assets"
+  compression_quality: 80    # 0-100
+
+ai:
+  gemini_api_key: "your-gemini-api-key"
+  endpoint: "https://generativelanguage.googleapis.com/v1beta"
+  timeout: 30  # seconds
+
+logger:
+  level: "info"    # debug, info, warn, error
+  format: "json"   # json or text
+  output: "stdout" # stdout or file
+  max_size: 100    # MB
+  max_backups: 3
+  max_age: 28      # days

@@ -6,12 +6,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../utils/constants';
 import useAuthStore from '../store/authStore';
 import { signOut } from '../utils/auth';
-import ConnectionStatus from '../components/ConnectionStatus';
-import HomeScreen from '../screens/HomeScreen';
-import ARScreen from '../screens/ARScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import WardrobeScreen from '../screens/WardrobeScreen';
-import CompetitionScreen from '../screens/CompetitionScreen';
+import { ConnectionStatus } from '../components';
+import {
+  HomeScreen,
+  ARScreen,
+  ProfileScreen,
+  WardrobeScreen,
+  CompetitionScreen
+} from '../screens';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
