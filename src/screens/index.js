@@ -10,6 +10,7 @@ export { default as ForgotPasswordScreen } from './auth/ForgotPasswordScreen';
 
 // Social Screens
 export { default as HomeScreen } from './social/HomeScreen';
+export { default as FeedScreen } from './social/FeedScreen';
 export { default as CompetitionScreen } from './social/CompetitionScreen';
 export { default as ExploreScreen } from './social/ExploreScreen';
 
