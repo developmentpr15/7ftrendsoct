@@ -14,11 +14,10 @@ class FeedService {
     const {
       limit = 20,
       offset = 0,
-      country = 'US',
       refresh = false
     } = options;
 
-    const cacheKey = `feed_${userId}_${limit}_${offset}_${country}`;
+    const cacheKey = `feed_${userId}_${limit}_${offset}`;
 
     // Check cache first
     if (!refresh && this.cache.has(cacheKey)) {
@@ -35,8 +34,7 @@ class FeedService {
       const { data, error } = await supabase.rpc('get_user_feed', {
         current_user_id: userId,
         limit_count: limit,
-        offset_count: offset,
-        user_country: country
+        offset_count: offset
       });
 
       if (error) {
@@ -54,7 +52,9 @@ class FeedService {
       });
 
       console.log(`Feed loaded: ${transformedFeed.length} posts`, {
-        friends: transformedFeed.filter(p => p.feed_type === 'friend').length,
+        mutual_friends: transformedFeed.filter(p => p.feed_type === 'mutual_friend').length,
+        following: transformedFeed.filter(p => p.feed_type === 'following').length,
+        own: transformedFeed.filter(p => p.feed_type === 'own').length,
         trending: transformedFeed.filter(p => p.feed_type === 'trending').length,
         competitions: transformedFeed.filter(p => p.feed_type === 'competition').length
       });
@@ -71,6 +71,7 @@ class FeedService {
   transformFeedData(data) {
     return data.map(post => ({
       id: post.post_id,
+      author_id: post.author_id,
       author: {
         id: post.author_id,
         username: post.author_username || 'Anonymous',
@@ -85,6 +86,8 @@ class FeedService {
       shares_count: post.shares_count || 0,
       is_liked: post.is_liked || false,
       feed_type: post.feed_type,
+      relationship_type: post.relationship_type,
+      friendship_boost: post.friendship_boost || 1.0,
       trending_score: parseFloat(post.trending_score) || 0,
       competition: post.competition_id ? {
         id: post.competition_id,
@@ -95,7 +98,10 @@ class FeedService {
         engagement_rate: this.calculateEngagementRate(post),
         time_ago: this.getTimeAgo(post.created_at),
         is_trending: post.feed_type === 'trending',
-        is_from_friend: post.feed_type === 'friend',
+        is_mutual_friend: post.feed_type === 'mutual_friend',
+        is_following: post.feed_type === 'following',
+        is_own_post: post.feed_type === 'own',
+        is_discover: post.feed_type === 'trending',
         is_competition_entry: post.feed_type === 'competition'
       }
     }));
@@ -304,7 +310,9 @@ class FeedService {
   getFeedAnalytics(feedData) {
     const analytics = {
       total_posts: feedData.length,
-      friends_posts: 0,
+      mutual_friends_posts: 0,
+      following_posts: 0,
+      own_posts: 0,
       trending_posts: 0,
       competition_posts: 0,
       average_engagement: 0,
@@ -317,7 +325,9 @@ class FeedService {
 
     feedData.forEach(post => {
       // Count by type
-      if (post.feed_type === 'friend') analytics.friends_posts++;
+      if (post.feed_type === 'mutual_friend') analytics.mutual_friends_posts++;
+      else if (post.feed_type === 'following') analytics.following_posts++;
+      else if (post.feed_type === 'own') analytics.own_posts++;
       else if (post.feed_type === 'trending') analytics.trending_posts++;
       else if (post.feed_type === 'competition') analytics.competition_posts++;
 
@@ -339,8 +349,8 @@ class FeedService {
   }
 
   // Get cached feed data
-  getCachedFeed(userId, limit = 20, offset = 0, country = 'US') {
-    const cacheKey = `feed_${userId}_${limit}_${offset}_${country}`;
+  getCachedFeed(userId, limit = 20, offset = 0) {
+    const cacheKey = `feed_${userId}_${limit}_${offset}`;
     const cached = this.cache.get(cacheKey);
 
     if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
@@ -351,10 +361,10 @@ class FeedService {
   }
 
   // Preload feed data for better UX
-  async preloadFeed(userId, country = 'US') {
+  async preloadFeed(userId) {
     try {
       // Load initial feed
-      await this.getUserFeed(userId, { limit: 10, country });
+      await this.getUserFeed(userId, { limit: 10 });
 
       // Load recommendations
       await this.getUserRecommendations(userId, 5);

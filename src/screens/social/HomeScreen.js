@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';
 import { useFeed } from '../../hooks/useFeed';
+import FriendshipStatus from '../../components/social/FriendshipStatus';
 import styles from '../../styles/homeStyles';
 
 // Import constants
@@ -347,14 +348,57 @@ const HomeScreen = () => {
                 </Text>
               }
             </Text>
-            <View>
-              <Text style={styles.postUsername}>{item.author?.username || 'Anonymous'}</Text>
+            <View style={styles.postAuthorInfo}>
+              <View style={styles.postAuthorRow}>
+                <Text style={styles.postUsername}>{item.author?.username || 'Anonymous'}</Text>
+                {/* Friendship/Relationship Indicator */}
+                {item.relationship_type && (
+                  <View style={[
+                    styles.relationshipIndicator,
+                    item.relationship_type === 'mutual_friend' && styles.mutualFriendIndicator,
+                    item.relationship_type === 'following' && styles.followingIndicator,
+                    item.relationship_type === 'discover' && styles.discoverIndicator
+                  ]}>
+                    <Ionicons
+                      name={
+                        item.relationship_type === 'mutual_friend' ? 'people' :
+                        item.relationship_type === 'following' ? 'person' :
+                        item.relationship_type === 'own' ? 'person' : 'globe'
+                      }
+                      size={10}
+                      color={
+                        item.relationship_type === 'mutual_friend' ? COLORS.success :
+                        item.relationship_type === 'following' ? COLORS.accent :
+                        item.relationship_type === 'discover' ? COLORS.textSecondary : COLORS.textSecondary
+                      }
+                    />
+                    <Text style={[
+                      styles.relationshipText,
+                      item.relationship_type === 'mutual_friend' && styles.mutualFriendText,
+                      item.relationship_type === 'following' && styles.followingText,
+                      item.relationship_type === 'discover' && styles.discoverText
+                    ]}>
+                      {item.relationship_type === 'mutual_friend' ? 'Mutual' :
+                       item.relationship_type === 'following' ? 'Following' :
+                       item.relationship_type === 'own' ? 'You' : 'Discover'}
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.postTimestamp}>{item.metadata?.time_ago || 'Just now'}</Text>
             </View>
           </View>
-          <TouchableOpacity>
-            <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
-          </TouchableOpacity>
+          <View style={styles.postHeaderActions}>
+            <FriendshipStatus
+              currentUserId={user?.id}
+              targetUserId={item.author_id}
+              targetUsername={item.author?.username}
+              style={styles.postFriendshipButton}
+            />
+            <TouchableOpacity>
+              <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Post Image */}
@@ -392,9 +436,27 @@ const HomeScreen = () => {
           <Text style={styles.likesCount}>{item.likes_count || 0} likes</Text>
           <Text style={styles.commentsCount}>{item.comments_count || 0} comments</Text>
           {item.feed_type && (
-            <Text style={styles.feedTypeLabel}>
-              {item.feed_type === 'friend' ? '👥 Friend' : item.feed_type === 'trending' ? '🔥 Trending' : '🏆 Competition'}
-            </Text>
+            <View style={styles.feedTypeContainer}>
+              <Text style={[
+                styles.feedTypeLabel,
+                item.feed_type === 'mutual_friend' && styles.mutualFriendLabel,
+                item.feed_type === 'following' && styles.followingLabel,
+                item.feed_type === 'own' && styles.ownLabel,
+                item.feed_type === 'trending' && styles.trendingLabel,
+                item.feed_type === 'competition' && styles.competitionLabel
+              ]}>
+                {item.feed_type === 'mutual_friend' ? '👥 Mutual Friend' :
+                 item.feed_type === 'following' ? '👤 Following' :
+                 item.feed_type === 'own' ? '📝 Your Post' :
+                 item.feed_type === 'trending' ? '🔥 Trending' : '🏆 Competition'}
+              </Text>
+              {item.friendship_boost && item.friendship_boost > 1.0 && (
+                <Text style={styles.boostIndicator}>
+                  {item.friendship_boost === 3.0 ? '⭐⭐⭐' :
+                   item.friendship_boost === 2.0 ? '⭐⭐' : '⭐'}
+                </Text>
+              )}
+            </View>
           )}
         </View>
 

@@ -224,15 +224,140 @@ export default StyleSheet.create({
     fontSize: 16,
     marginRight: 12,
   },
+  postAvatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  postAvatarText: {
+    color: '#ffffff',
+    fontFamily: FONTS.bold,
+  },
+  postAuthorInfo: {
+    flex: 1,
+  },
+  postAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
   postUsername: {
     fontSize: 14,
     fontFamily: FONTS.bold,
     color: '#1a1a1a',
+    marginRight: 8,
   },
   postTimestamp: {
     fontSize: 12,
     color: '#666666',
-    marginTop: 2,
+  },
+  postHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  postFriendshipButton: {
+    minWidth: 80,
+  },
+  // Friendship indicators
+  relationshipIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  mutualFriendIndicator: {
+    backgroundColor: '#d4f4dd',
+  },
+  followingIndicator: {
+    backgroundColor: '#e8f4fd',
+  },
+  discoverIndicator: {
+    backgroundColor: '#f8f9fa',
+  },
+  relationshipText: {
+    fontSize: 10,
+    color: '#666666',
+    marginLeft: 4,
+    fontFamily: FONTS.medium,
+  },
+  mutualFriendText: {
+    color: '#10b981',
+  },
+  followingText: {
+    color: '#3b82f6',
+  },
+  discoverText: {
+    color: '#6b7280',
+  },
+  // Feed type labels
+  feedTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  feedTypeLabel: {
+    fontSize: 11,
+    fontFamily: FONTS.medium,
+    color: '#666666',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#f8f9fa',
+  },
+  mutualFriendLabel: {
+    backgroundColor: '#d4f4dd',
+    color: '#10b981',
+  },
+  followingLabel: {
+    backgroundColor: '#e8f4fd',
+    color: '#3b82f6',
+  },
+  ownLabel: {
+    backgroundColor: '#fef3c7',
+    color: '#f59e0b',
+  },
+  trendingLabel: {
+    backgroundColor: '#fce7f3',
+    color: '#ec4899',
+  },
+  competitionLabel: {
+    backgroundColor: '#f3e8ff',
+    color: '#8b5cf6',
+  },
+  boostIndicator: {
+    fontSize: 10,
+    marginLeft: 4,
+  },
+
+  // Feed composition
+  feedCompositionContainer: {
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  compositionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  compositionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  compositionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  compositionText: {
+    fontSize: 12,
+    color: '#666666',
+    fontFamily: FONTS.medium,
   },
   postImage: {
     width: '100%',

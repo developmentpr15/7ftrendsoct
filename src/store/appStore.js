@@ -45,36 +45,77 @@ const useAppStore = create((set, get) => ({
     }
   ],
 
-  // Challenges
-  challenges: [
+  // Competitions with country awareness
+  competitions: [
     {
       id: 1,
-      title: 'Summer Vibes',
-      description: 'Show your best summer outfit',
+      title: 'Summer Vibes USA',
+      description: 'Show your best summer outfit - Americas Only',
       icon: '☀️',
       participants: 156,
       deadline: '3 days left',
-      isActive: true
+      isActive: true,
+      isGlobal: false,
+      eligibleCountries: ['US', 'CA', 'MX', 'BR', 'AR'],
+      region: 'Americas',
+      userJoined: false,
+      canJoin: true,
+      daysRemaining: 3,
+      countryFlag: '🇺🇸'
     },
     {
       id: 2,
-      title: 'Office Style',
-      description: 'Professional look for work',
+      title: 'Office Style Europe',
+      description: 'Professional look for work - Europe Only',
       icon: '💼',
       participants: 89,
       deadline: '5 days left',
-      isActive: true
+      isActive: true,
+      isGlobal: false,
+      eligibleCountries: ['GB', 'FR', 'DE', 'IT', 'ES', 'NL', 'BE'],
+      region: 'Europe',
+      userJoined: false,
+      canJoin: false,
+      daysRemaining: 5,
+      countryFlag: '🇬🇧'
     },
     {
       id: 3,
-      title: 'Date Night',
-      description: 'Perfect outfit for a special evening',
+      title: 'Global Fashion Week',
+      description: 'Showcase your best outfit - Open to all countries',
+      icon: '🌍',
+      participants: 523,
+      deadline: '1 week left',
+      isActive: true,
+      isGlobal: true,
+      eligibleCountries: null,
+      region: null,
+      userJoined: false,
+      canJoin: true,
+      daysRemaining: 7,
+      countryFlag: '🌍'
+    },
+    {
+      id: 4,
+      title: 'Date Night Asia',
+      description: 'Perfect outfit for a special evening - Asia Pacific',
       icon: '💕',
       participants: 234,
-      deadline: '1 week left',
-      isActive: false
+      deadline: '4 days left',
+      isActive: false,
+      isGlobal: false,
+      eligibleCountries: ['JP', 'KR', 'CN', 'IN', 'SG', 'TH', 'PH'],
+      region: 'Asia',
+      userJoined: false,
+      canJoin: false,
+      daysRemaining: 4,
+      countryFlag: '🇯🇵'
     }
   ],
+
+  // Country-specific leaderboards
+  competitionLeaderboards: {},
+  userCountry: 'US',
 
   // AR Photos
   arPhotos: [],
@@ -126,15 +167,46 @@ const useAppStore = create((set, get) => ({
     }));
   },
 
-  // Challenge Actions
-  joinChallenge: (challengeId) => {
+  // Competition Actions
+  joinCompetition: (competitionId) => {
     set((state) => ({
-      challenges: state.challenges.map(challenge =>
-        challenge.id === challengeId
-          ? { ...challenge, participants: challenge.participants + 1 }
-          : challenge
+      competitions: state.competitions.map(competition =>
+        competition.id === competitionId
+          ? { ...competition, participants: competition.participants + 1, userJoined: true }
+          : competition
       )
     }));
+  },
+
+  // Set user's country
+  setUserCountry: (country) => {
+    set({ userCountry: country });
+  },
+
+  // Update competition leaderboards
+  updateCompetitionLeaderboard: (competitionId, leaderboard) => {
+    set((state) => ({
+      competitionLeaderboards: {
+        ...state.competitionLeaderboards,
+        [competitionId]: leaderboard
+      }
+    }));
+  },
+
+  // Create new competition with country settings
+  createCompetition: (competitionData) => {
+    const newCompetition = {
+      id: Date.now(),
+      ...competitionData,
+      participants: 0,
+      userJoined: false,
+      isActive: true,
+      daysRemaining: competitionData.daysRemaining || 7,
+    };
+    set((state) => ({
+      competitions: [newCompetition, ...state.competitions]
+    }));
+    return newCompetition.id;
   },
 
   // AR Photo Actions

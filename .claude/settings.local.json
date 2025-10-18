@@ -26,7 +26,8 @@
       "Bash(move:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(npx expo export:*)"
+      "Bash(npx expo export:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

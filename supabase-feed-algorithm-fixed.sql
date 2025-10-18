@@ -1,6 +1,7 @@
--- Intelligent Feed Algorithm for 7Ftrends
--- Weighted: 67% friends + 23% trending + 10% competitions
--- With time-decay scoring and country-based boosting
+-- Intelligent Feed Algorithm for 7Ftrends (Fixed Version)
+-- Weighted: 35% mutual friends + 25% following + 10% own + 20% trending + 10% competitions
+-- With time-decay scoring and friendship-based prioritization
+-- NO COUNTRY DEPENDENCIES - Compatible with existing database schema
 
 -- First, create necessary helper functions
 
@@ -51,32 +52,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
--- Function to get country boost factor
-CREATE OR REPLACE FUNCTION get_country_boost(
-    user_country TEXT,
-    post_country TEXT
-)
-RETURNS DECIMAL AS $$
-BEGIN
-    -- Same country gets 2.0x boost
-    IF user_country IS NOT NULL AND post_country IS NOT NULL AND user_country = post_country THEN
-        RETURN 2.0;
-    END IF;
-
-    -- Same region (simplified - could be expanded with region mapping)
-    IF user_country IN ('US', 'CA', 'MX') AND post_country IN ('US', 'CA', 'MX') THEN
-        RETURN 1.3;
-    ELSIF user_country IN ('GB', 'FR', 'DE', 'IT', 'ES') AND post_country IN ('GB', 'FR', 'DE', 'IT', 'ES') THEN
-        RETURN 1.3;
-    ELSIF user_country IN ('JP', 'KR', 'CN') AND post_country IN ('JP', 'KR', 'CN') THEN
-        RETURN 1.3;
-    END IF;
-
-    RETURN 1.0; -- No boost
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
--- Main feed function (updated with friendship prioritization)
+-- Main feed function (fixed - no country dependencies)
 CREATE OR REPLACE FUNCTION get_user_feed(
     current_user_id UUID,
     limit_count INTEGER DEFAULT 20,
@@ -257,39 +233,66 @@ BEGIN
     ORDER BY trending_score DESC
     LIMIT trending_count + 5;
 
-    -- Get competition posts
-    CREATE TEMPORARY TABLE IF NOT EXISTS temp_competition_posts AS
-    SELECT
-        ce.id as post_id, -- Using competition entry as the "post"
-        ce.participant_id as author_id,
-        ce.description as content,
-        ce.images,
-        ce.submitted_at as created_at,
-        ce.votes_count as likes_count,
-        0 as comments_count,
-        0 as shares_count,
-        calculate_trending_score(ce.id, NOW()) * 1.5 as trending_score, -- Boost competition posts
-        'competition' as feed_type,
-        'competition' as relationship_type,
-        u.username as author_username,
-        u.avatar_url as author_avatar_url,
-        u.full_name as author_full_name,
-        EXISTS(SELECT 1 FROM votes v WHERE v.entry_id = ce.id AND v.voter_id = current_user_id) as is_liked,
-        ce.competition_id,
-        c.title as competition_title,
-        1.5 as friendship_boost,
-        ROW_NUMBER() OVER (ORDER BY ce.submitted_at DESC) as row_num
-    FROM competition_entries ce
-    JOIN users u ON ce.participant_id = u.id
-    JOIN competitions c ON ce.competition_id = c.id
-    WHERE c.status IN ('active', 'voting', 'completed')
-    AND ce.submitted_at >= NOW() - INTERVAL '14 days' -- Competition entries from last 2 weeks
-    AND ce.id NOT IN (SELECT post_id FROM temp_mutual_friends_posts WHERE post_id IS NOT NULL)
-    AND ce.id NOT IN (SELECT post_id FROM temp_following_posts WHERE post_id IS NOT NULL)
-    AND ce.id NOT IN (SELECT post_id FROM temp_own_posts WHERE post_id IS NOT NULL)
-    AND ce.id NOT IN (SELECT post_id FROM temp_trending_posts WHERE post_id IS NOT NULL)
-    ORDER BY ce.submitted_at DESC
-    LIMIT competition_count + 3;
+    -- Get competition posts (if competition_entries table exists)
+    BEGIN
+        -- Try to get competition posts, but handle gracefully if table doesn't exist
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_competition_posts AS
+        SELECT
+            ce.id as post_id, -- Using competition entry as the "post"
+            ce.participant_id as author_id,
+            ce.description as content,
+            ce.images,
+            ce.submitted_at as created_at,
+            ce.votes_count as likes_count,
+            0 as comments_count,
+            0 as shares_count,
+            calculate_trending_score(ce.id, NOW()) * 1.5 as trending_score, -- Boost competition posts
+            'competition' as feed_type,
+            'competition' as relationship_type,
+            u.username as author_username,
+            u.avatar_url as author_avatar_url,
+            u.full_name as author_full_name,
+            EXISTS(SELECT 1 FROM votes v WHERE v.entry_id = ce.id AND v.voter_id = current_user_id) as is_liked,
+            ce.competition_id,
+            c.title as competition_title,
+            1.5 as friendship_boost,
+            ROW_NUMBER() OVER (ORDER BY ce.submitted_at DESC) as row_num
+        FROM competition_entries ce
+        JOIN users u ON ce.participant_id = u.id
+        JOIN competitions c ON ce.competition_id = c.id
+        WHERE c.status IN ('active', 'voting', 'completed')
+        AND ce.submitted_at >= NOW() - INTERVAL '14 days' -- Competition entries from last 2 weeks
+        AND ce.id NOT IN (SELECT post_id FROM temp_mutual_friends_posts WHERE post_id IS NOT NULL)
+        AND ce.id NOT IN (SELECT post_id FROM temp_following_posts WHERE post_id IS NOT NULL)
+        AND ce.id NOT IN (SELECT post_id FROM temp_own_posts WHERE post_id IS NOT NULL)
+        AND ce.id NOT IN (SELECT post_id FROM temp_trending_posts WHERE post_id IS NOT NULL)
+        ORDER BY ce.submitted_at DESC
+        LIMIT competition_count + 3;
+    EXCEPTION WHEN undefined_table THEN
+        -- competition_entries table doesn't exist, create empty table
+        CREATE TEMPORARY TABLE temp_competition_posts AS
+        SELECT
+            NULL::UUID as post_id,
+            NULL::UUID as author_id,
+            NULL::TEXT as content,
+            NULL::JSONB as images,
+            NULL::TIMESTAMPTZ as created_at,
+            0 as likes_count,
+            0 as comments_count,
+            0 as shares_count,
+            0.0 as trending_score,
+            'competition' as feed_type,
+            'competition' as relationship_type,
+            NULL::TEXT as author_username,
+            NULL::TEXT as author_avatar_url,
+            NULL::TEXT as author_full_name,
+            false as is_liked,
+            NULL::UUID as competition_id,
+            NULL::TEXT as competition_title,
+            1.5 as friendship_boost,
+            0 as row_num
+        LIMIT 0;
+    END;
 
     -- Combine all posts with friend-based prioritization
     RETURN QUERY
@@ -369,7 +372,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function to get personalized recommendations
+-- Function to get personalized recommendations (fixed username ambiguity)
 CREATE OR REPLACE FUNCTION get_user_recommendations(
     current_user_id UUID,
     limit_count INTEGER DEFAULT 10
@@ -469,7 +472,6 @@ $$ LANGUAGE plpgsql;
 GRANT EXECUTE ON FUNCTION get_user_feed TO authenticated;
 GRANT EXECUTE ON FUNCTION get_user_recommendations TO authenticated;
 GRANT EXECUTE ON FUNCTION calculate_trending_score TO authenticated;
-GRANT EXECUTE ON FUNCTION get_country_boost TO authenticated;
 GRANT EXECUTE ON FUNCTION refresh_feed_scores TO authenticated;
 
 -- Create indexes for better performance
@@ -480,9 +482,32 @@ CREATE INDEX IF NOT EXISTS idx_follows_follower_status ON follows(follower_id, s
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_users_followers_count ON users(followers_count DESC);
-CREATE INDEX IF NOT EXISTS idx_competition_entries_submitted ON competition_entries(submitted_at DESC);
-CREATE INDEX IF NOT EXISTS idx_competitions_status ON competitions(status);
+
+-- Create indexes for competition tables if they exist
+DO $$
+BEGIN
+    BEGIN
+        CREATE INDEX IF NOT EXISTS idx_competition_entries_submitted ON competition_entries(submitted_at DESC);
+    EXCEPTION WHEN undefined_table THEN
+        NULL; -- Table doesn't exist, skip index creation
+    END;
+
+    BEGIN
+        CREATE INDEX IF NOT EXISTS idx_competitions_status ON competitions(status);
+    EXCEPTION WHEN undefined_table THEN
+        NULL; -- Table doesn't exist, skip index creation
+    END;
+
+    BEGIN
+        CREATE INDEX IF NOT EXISTS idx_votes_entry_id ON votes(entry_id);
+    EXCEPTION WHEN undefined_table THEN
+        NULL; -- Table doesn't exist, skip index creation
+    END;
+END $$;
 
 -- Sample usage queries:
--- SELECT * FROM get_user_feed('user-uuid-here', 20, 0, 'US');
+-- SELECT * FROM get_user_feed('user-uuid-here', 20, 0);
 -- SELECT * FROM get_user_recommendations('user-uuid-here', 10);
+
+RAISE NOTICE '✅ Feed algorithm loaded successfully - No country dependencies';
+RAISE NOTICE '🎯 Ready to serve personalized feed with friendship prioritization';

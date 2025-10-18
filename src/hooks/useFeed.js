@@ -23,11 +23,7 @@ export const useFeed = (options = {}) => {
   const offsetRef = useRef(0);
   const refreshTimeoutRef = useRef(null);
 
-  // Get user's country from metadata or default to US
-  const getUserCountry = useCallback(() => {
-    return user?.user_metadata?.country || user?.country || 'US';
-  }, [user]);
-
+  
   // Fetch posts from feed service
   const fetchPosts = useCallback(async (loadMore = false, refresh = false) => {
     if (!user?.id) {
@@ -46,14 +42,12 @@ export const useFeed = (options = {}) => {
       }
 
       const currentOffset = refresh ? 0 : offsetRef.current;
-      const userCountry = getUserCountry();
 
       console.log(`Fetching feed - Load more: ${loadMore}, Refresh: ${refresh}, Offset: ${currentOffset}`);
 
       const feedData = await feedService.getUserFeed(user.id, {
         limit: loadMore ? limit : limit,
         offset: currentOffset,
-        country: userCountry,
         refresh
       });
 
@@ -75,7 +69,9 @@ export const useFeed = (options = {}) => {
 
       console.log('Feed loaded successfully:', {
         totalPosts: feedData.length,
-        friends: feedAnalytics.friends_posts,
+        mutual_friends: feedAnalytics.mutual_friends_posts,
+        following: feedAnalytics.following_posts,
+        own: feedAnalytics.own_posts,
         trending: feedAnalytics.trending_posts,
         competitions: feedAnalytics.competition_posts,
         hasMore: feedData.length === limit
@@ -89,18 +85,18 @@ export const useFeed = (options = {}) => {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  }, [user?.id, limit, getUserCountry]);
+  }, [user?.id, limit]);
 
   // Initial load
   useEffect(() => {
     if (user?.id) {
       if (preload) {
         // Preload feed data for better UX
-        feedService.preloadFeed(user.id, getUserCountry());
+        feedService.preloadFeed(user.id);
       }
       fetchPosts(false, true); // Initial refresh
     }
-  }, [user?.id, fetchPosts, preload, getUserCountry]);
+  }, [user?.id, fetchPosts, preload]);
 
   // Auto-refresh setup
   useEffect(() => {
@@ -263,7 +259,9 @@ export const useFeed = (options = {}) => {
     isEmpty: !loading && posts.length === 0,
     hasError: !!error && posts.length === 0,
     feedComposition: analytics ? {
-      friends: analytics.friends_posts,
+      mutual_friends: analytics.mutual_friends_posts,
+      following: analytics.following_posts,
+      own: analytics.own_posts,
       trending: analytics.trending_posts,
       competitions: analytics.competition_posts,
       total: analytics.total_posts
