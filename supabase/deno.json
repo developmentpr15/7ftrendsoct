@@ -1,0 +1,15 @@
+{
+  "imports": {
+    "supabase": "https://esm.sh/@supabase/supabase-js@2",
+    "std": "https://deno.land/std@0.168.0/http/server.ts"
+  },
+  "tasks": {
+    "serve": "deno run --allow-net --allow-env --allow-read",
+    "deploy": "supabase functions deploy"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window"],
+    "strict": true
+  }
+}

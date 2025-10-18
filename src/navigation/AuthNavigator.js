@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, ActivityInd
 import { COLORS, SIZES, FONTS } from '../utils/constants';
 import { signIn, signUp } from '../utils/auth';
 import useAuthStore from '../store/authStore';
+import SocialAuthScreen from '../components/auth/SocialAuthScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -187,6 +188,7 @@ const RegisterScreen = ({ navigation }) => {
 const AuthNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="SocialAuth" component={SocialAuthScreen} initialParams={{ initialMode: 'signin' }} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>

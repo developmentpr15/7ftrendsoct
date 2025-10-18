@@ -1,0 +1,17 @@
+# Edge Functions configuration for 7Ftrends
+
+[functions]
+# Function timeouts in seconds
+[functions.finalize-competition]
+verify_jwt = false
+[functions.calculate-trending]
+verify_jwt = false
+[functions.daily-outfit-suggestion]
+verify_jwt = false
+
+# Environment variables needed for all functions
+# These should be set in Supabase dashboard: Settings > Edge Functions
+# SUPABASE_URL
+# SUPABASE_SERVICE_ROLE_KEY
+# WEATHER_API_KEY (optional)
+# WEATHER_API_URL (optional)

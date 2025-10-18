@@ -27,7 +27,12 @@
       "Bash(tree:*)",
       "Bash(find:*)",
       "Bash(npx expo export:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(supabase:*)",
+      "Bash(npx supabase@latest:*)",
+      "Bash(npx supabase status:*)",
+      "Bash(npx supabase link:*)",
+      "Bash(npx expo install:*)"
     ],
     "deny": [],
     "ask": []
