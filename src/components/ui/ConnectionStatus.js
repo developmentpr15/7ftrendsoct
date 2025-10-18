@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, FONTS } from '../utils/constants';
-import { testSupabaseConnection } from '../utils/supabase';
+import { COLORS, SIZES, FONTS } from '../../utils/constants';
+import { testSupabaseConnection } from '../../utils/supabase';
 
 const ConnectionStatus = ({ showDetails = false }) => {
   const [status, setStatus] = useState('loading');

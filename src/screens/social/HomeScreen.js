@@ -10,7 +10,7 @@ import {
   Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../store/appStore';
+import useAppStore from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { COLORS } from '../../utils/constants';
 import styles from '../../styles/homeStyles';

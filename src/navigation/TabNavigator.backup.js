@@ -12,7 +12,7 @@ import { COLORS, SIZES, FONTS, SHADOWS, CATEGORIES, APP_INFO } from '../utils/co
 import useAuthStore from '../store/authStore';
 import useAppStore from '../store/appStore';
 import { signOut } from '../utils/auth';
-import ConnectionStatus from '../components/ConnectionStatus';
+import ConnectionStatus from '../components';
 
 // Countries data with flags
 const COUNTRIES = [

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Camera } from 'expo-camera';
-import { useAppStore } from '../../store/appStore';
+import useAppStore from '../../store/appStore';
 import { COLORS } from '../../utils/constants';
 import styles from '../../styles/arStyles';
 

@@ -9,7 +9,7 @@ import {
   Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAppStore } from '../../store/appStore';
+import useAppStore from '../../store/appStore';
 import { COLORS } from '../../utils/constants';
 import styles from '../../styles/wardrobeStyles';
 

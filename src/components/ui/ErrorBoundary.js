@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, SIZES, FONTS } from '../utils/constants';
+import { COLORS, SIZES, FONTS } from '../../utils/constants';
 
 class ErrorBoundary extends Component {
   constructor(props) {

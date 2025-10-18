@@ -6,11 +6,11 @@ import { useFonts } from 'expo-font';
 import { Pacifico_400Regular } from '@expo-google-fonts/pacifico';
 
 // Import extracted screen components
-import HomeScreen from '../components/screens/HomeScreen';
-import WardrobeScreen from '../components/screens/WardrobeScreen';
-import ARScreen from '../components/screens/ARScreen';
-import CompetitionScreen from '../components/screens/CompetitionScreen';
-import ProfileScreen from '../components/screens/ProfileScreen';
+import HomeScreen from '../screens/social/HomeScreen';
+import WardrobeScreen from '../screens/wardrobe/WardrobeScreen';
+import ARScreen from '../screens/ar/ARScreen';
+import CompetitionScreen from '../screens/social/CompetitionScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
 
 // Import auth and app stores
 import { useAuthStore } from '../store/authStore';

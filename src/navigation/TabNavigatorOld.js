@@ -13,8 +13,8 @@ import { COLORS, SIZES, FONTS, SHADOWS, CATEGORIES, APP_INFO } from '../utils/co
 import useAuthStore from '../store/authStore';
 import useAppStore from '../store/appStore';
 import { signOut } from '../utils/auth';
-import ConnectionStatus from '../components/ConnectionStatus';
-import HomeScreen from '../screens/HomeScreen';
+import ConnectionStatus from '../components';
+import HomeScreen from '../screens/social/HomeScreen';
 
 // Countries data with flags
 const COUNTRIES = [
