@@ -13,7 +13,7 @@ import CompetitionScreen from '../screens/social/CompetitionScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 // Import auth and app stores
-import { useAuthStore } from '../store/authStore';
+import useAuthStore from '../store/authStore';
 import AuthNavigator from './AuthNavigator';
 import { COLORS, SIZES, FONTS } from '../utils/constants';
 

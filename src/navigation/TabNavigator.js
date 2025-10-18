@@ -9,7 +9,6 @@ import { signOut } from '../utils/auth';
 import { ConnectionStatus } from '../components';
 import {
   HomeScreen,
-  FeedScreen,
   ARScreen,
   ProfileScreen,
   WardrobeScreen,
@@ -18,7 +17,6 @@ import {
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
-const FeedStack = createNativeStackNavigator();
 const WardrobeStack = createNativeStackNavigator();
 const CompetitionStack = createNativeStackNavigator();
 const ARStack = createNativeStackNavigator();
@@ -40,18 +38,6 @@ const HomeStackNavigator = () => {
   );
 };
 
-// Feed Stack Navigator
-const FeedStackNavigator = () => {
-  return (
-    <FeedStack.Navigator>
-      <FeedStack.Screen
-        name="FeedMain"
-        component={FeedScreen}
-        options={{ headerShown: false }}
-      />
-    </FeedStack.Navigator>
-  );
-};
 
 // Wardrobe Stack Navigator
 const WardrobeStackNavigator = () => {
@@ -135,9 +121,6 @@ const TabNavigator = () => {
               case 'Home':
                 iconName = focused ? 'home' : 'home-outline';
                 break;
-              case 'Feed':
-                iconName = focused ? 'reader' : 'reader-outline';
-                break;
               case 'Wardrobe':
                 iconName = focused ? 'shirt' : 'shirt-outline';
                 break;
@@ -177,11 +160,6 @@ const TabNavigator = () => {
           name="Home"
           component={HomeStackNavigator}
           options={{ tabBarLabel: 'Home' }}
-        />
-        <Tab.Screen
-          name="Feed"
-          component={FeedStackNavigator}
-          options={{ tabBarLabel: 'Feed' }}
         />
         <Tab.Screen
           name="Wardrobe"

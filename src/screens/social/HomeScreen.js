@@ -1,18 +1,23 @@
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Alert,
+  SafeAreaView,
+  ActivityIndicator,
   TouchableOpacity,
-  Image,
-  TextInput,
   Modal,
-  Alert
+  TextInput,
+  ScrollView,
+  Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import useAppStore from '../../store/appStore';
-import { useAuthStore } from '../../store/authStore';
-import { COLORS } from '../../utils/constants';
+import useAuthStore from '../../store/authStore';
+import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';
+import { useFeed } from '../../hooks/useFeed';
 import styles from '../../styles/homeStyles';
 
 // Import constants
@@ -30,24 +35,53 @@ const COUNTRIES = [
 ];
 
 const HomeScreen = () => {
-  const { posts, toggleLike, addComment } = useAppStore();
-  const { user } = useAuthStore();
-  const [commentModalVisible, setCommentModalVisible] = useState(false);
-  const [selectedPost, setSelectedPost] = useState(null);
-  const [commentText, setCommentText] = useState('');
-  const [createPostVisible, setCreatePostVisible] = useState(false);
-  const [newPostText, setNewPostText] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null);
-
-  // New states for country and hashtag filtering
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
-  const [selectedHashtag, setSelectedHashtag] = useState(null);
-  const [showCountrySelector, setShowCountrySelector] = useState(false);
-
-  // Search functionality states
+  const user = useAuthStore((state) => state.user);
+  const [showFeedInfo, setShowFeedInfo] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [createPostVisible, setCreatePostVisible] = useState(false);
+  const [newPostText, setNewPostText] = useState('');
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedHashtag, setSelectedHashtag] = useState(null);
+
+  // Use the intelligent feed hook
+  const {
+    posts,
+    analytics,
+    loading,
+    refreshing,
+    loadingMore,
+    hasMore,
+    error,
+    onRefresh,
+    loadMore,
+    likePost,
+    unlikePost,
+    voteForEntry,
+    reportPost,
+    clearCacheAndRefresh,
+    isEmpty,
+    hasError,
+    feedComposition
+  } = useFeed({
+    limit: 20,
+    refreshInterval: 60000, // 1 minute auto-refresh
+    autoRefresh: true,
+    preload: true
+  });
+
+  // Country selection
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+
+  // Notifications
+  const [notificationVisible, setNotificationVisible] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, type: 'like', message: 'fashionista liked your post', time: '2m ago', read: false },
+    { id: 2, type: 'comment', message: 'styleguru commented: "Great outfit!"', time: '15m ago', read: false },
+    { id: 3, type: 'follow', message: 'trendsetter started following you', time: '1h ago', read: true },
+  ]);
 
   // Message functionality states
   const [messageVisible, setMessageVisible] = useState(false);
@@ -62,11 +96,6 @@ const HomeScreen = () => {
       lastMessage: 'Love your outfit!',
       time: '2m ago',
       unread: 2,
-      messages: [
-        { id: 1, text: 'Hey! Great style!', sender: 'fashionista', time: '10m ago' },
-        { id: 2, text: 'Thank you so much!', sender: 'me', time: '8m ago' },
-        { id: 3, text: 'Love your outfit!', sender: 'fashionista', time: '2m ago' },
-      ]
     },
     {
       id: 2,
@@ -75,11 +104,6 @@ const HomeScreen = () => {
       lastMessage: 'Where did you get that?',
       time: '15m ago',
       unread: 1,
-      messages: [
-        { id: 1, text: 'That outfit is amazing!', sender: 'styleguru', time: '20m ago' },
-        { id: 2, text: 'Thanks! I picked it up last week', sender: 'me', time: '18m ago' },
-        { id: 3, text: 'Where did you get that?', sender: 'styleguru', time: '15m ago' },
-      ]
     },
     {
       id: 3,
@@ -88,84 +112,87 @@ const HomeScreen = () => {
       lastMessage: 'Thanks for the follow!',
       time: '1h ago',
       unread: 0,
-      messages: [
-        { id: 1, text: 'Just followed you!', sender: 'me', time: '1h ago' },
-        { id: 2, text: 'Thanks for the follow!', sender: 'trendsetter', time: '1h ago' },
-      ]
-    },
-    {
-      id: 4,
-      username: 'modelpro',
-      avatar: '👗',
-      lastMessage: 'Let\'s collaborate!',
-      time: '2h ago',
-      unread: 0,
-      messages: [
-        { id: 1, text: 'Hi there!', sender: 'modelpro', time: '2h ago' },
-        { id: 2, text: 'Hello!', sender: 'me', time: '2h ago' },
-        { id: 3, text: 'Let\'s collaborate!', sender: 'modelpro', time: '2h ago' },
-      ]
     },
   ]);
 
-  // Notification functionality states
-  const [notificationVisible, setNotificationVisible] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'like', message: 'fashionista liked your post', time: '2m ago', read: false },
-    { id: 2, type: 'comment', message: 'styleguru commented: "Great outfit!"', time: '15m ago', read: false },
-    { id: 3, type: 'follow', message: 'trendsetter started following you', time: '1h ago', read: true },
-    { id: 4, type: 'challenge', message: 'New challenge "Summer Styles" is live!', time: '2h ago', read: true },
-  ]);
-
-  // Event handlers
-  const handleLike = (postId) => {
-    toggleLike(postId);
-  };
-
-  const handleComment = (postId) => {
-    setSelectedPost(postId);
-    setCommentModalVisible(true);
-  };
-
-  const submitComment = () => {
-    if (commentText.trim() && selectedPost) {
-      addComment(selectedPost, commentText);
-      setCommentText('');
-      setCommentModalVisible(false);
-      setSelectedPost(null);
+  // Handle like action with intelligent feed
+  const handleLike = useCallback(async (postId) => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to like posts');
+      return;
     }
-  };
+
+    // Check if post is already liked
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    try {
+      if (post.is_liked) {
+        await unlikePost(postId);
+      } else {
+        await likePost(postId);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update like status');
+    }
+  }, [user, posts, likePost, unlikePost]);
+
+  // Handle vote for competition entries
+  const handleVote = useCallback(async (postId) => {
+    if (!user) {
+      Alert.alert('Login Required', 'Please login to vote');
+      return;
+    }
+
+    const post = posts.find(p => p.id === postId);
+    if (!post || post.feed_type !== 'competition') return;
+
+    try {
+      await voteForEntry(postId, 5); // Default score of 5
+      Alert.alert('Success', 'Vote submitted successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to submit vote');
+    }
+  }, [user, posts, voteForEntry]);
+
+  // Handle comment action
+  const handleComment = useCallback((postId) => {
+    Alert.alert('Comments', 'Comments feature coming soon!');
+  }, []);
+
+  // Handle report post
+  const handleReport = useCallback((postId) => {
+    Alert.prompt(
+      'Report Post',
+      'Please select a reason for reporting this post:',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Spam',
+          onPress: () => reportPost(postId, 'spam')
+        },
+        {
+          text: 'Inappropriate Content',
+          onPress: () => reportPost(postId, 'inappropriate')
+        },
+        {
+          text: 'Harassment',
+          onPress: () => reportPost(postId, 'harassment')
+        }
+      ]
+    );
+  }, [reportPost]);
+
+  // Handle refresh with analytics
+  const handleRefresh = useCallback(async () => {
+    await onRefresh();
+  }, [onRefresh]);
 
   const handleCreatePost = () => {
     setCreatePostVisible(true);
   };
 
-  const submitPost = () => {
-    if (newPostText.trim() || selectedImage) {
-      const newPost = {
-        id: Date.now().toString(),
-        username: user?.user_metadata?.username || user?.email?.split('@')[0] || 'User',
-        avatar: '👤',
-        image: selectedImage || 'https://picsum.photos/seed/' + Date.now() + '/400/400',
-        outfit: newPostText.trim() || 'New outfit post!',
-        items: newPostText.match(/#\w+/g) || [],
-        likes: 0,
-        comments: 0,
-        isLiked: false,
-        timestamp: 'Just now',
-      };
-
-      posts.unshift(newPost);
-
-      Alert.alert('Success', 'Post created successfully!');
-      setNewPostText('');
-      setSelectedImage(null);
-      setCreatePostVisible(false);
-    } else {
-      Alert.alert('Error', 'Please add a caption or image to create a post.');
-    }
-  };
-
+  
   const handleAddImageToPost = () => {
     Alert.alert(
       'Add Photo',
@@ -203,21 +230,7 @@ const HomeScreen = () => {
     setShowCountrySelector(false);
   };
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    if (query.trim() === '') {
-      setSearchResults([]);
-      return;
-    }
-
-    const filtered = posts.filter(post =>
-      post.username.toLowerCase().includes(query.toLowerCase()) ||
-      post.outfit.toLowerCase().includes(query.toLowerCase()) ||
-      post.items.some(item => item.toLowerCase().includes(query.toLowerCase()))
-    );
-    setSearchResults(filtered);
-  };
-
+  
   const handleSearchIconPress = () => {
     setSearchVisible(true);
     setSearchQuery('');
@@ -314,68 +327,149 @@ const HomeScreen = () => {
     }
   };
 
-  const renderPost = (post) => (
-    <View key={post.id} style={styles.postContainer}>
-      {/* Post Header */}
-      <View style={styles.postHeader}>
-        <View style={styles.postUserInfo}>
-          <Text style={styles.postAvatar}>{post.avatar}</Text>
-          <View>
-            <Text style={styles.postUsername}>{post.username}</Text>
-            <Text style={styles.postTimestamp}>{post.timestamp}</Text>
+  // Render post item with intelligent feed features
+  const renderPost = useCallback(({ item }) => {
+    if (!item || !item.id) {
+      console.warn('renderPost received invalid item:', item);
+      return null;
+    }
+
+    return (
+      <View key={item.id} style={styles.postContainer}>
+        {/* Post Header */}
+        <View style={styles.postHeader}>
+          <View style={styles.postUserInfo}>
+            <Text style={styles.postAvatar}>
+              {item.author?.avatar_url ?
+                <Image source={{ uri: item.author.avatar_url }} style={styles.postAvatarImage} /> :
+                <Text style={styles.postAvatarText}>
+                  {item.author?.username?.[0]?.toUpperCase() || 'U'}
+                </Text>
+              }
+            </Text>
+            <View>
+              <Text style={styles.postUsername}>{item.author?.username || 'Anonymous'}</Text>
+              <Text style={styles.postTimestamp}>{item.metadata?.time_ago || 'Just now'}</Text>
+            </View>
+          </View>
+          <TouchableOpacity>
+            <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Post Image */}
+        {item.images && item.images.length > 0 && (
+          <Image source={{ uri: item.images[0] }} style={styles.postImage} />
+        )}
+
+        {/* Post Actions */}
+        <View style={styles.postActions}>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(item.id)}>
+            <Ionicons
+              name={item.is_liked ? "heart" : "heart-outline"}
+              size={24}
+              color={item.is_liked ? COLORS.like : COLORS.textSecondary}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(item.id)}>
+            <Ionicons name="chatbubble-outline" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+          {item.feed_type === 'competition' && (
+            <TouchableOpacity style={styles.actionButton} onPress={() => handleVote(item.id)}>
+              <Ionicons name="trophy" size={24} color={COLORS.accent} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="paper-plane-outline" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionButton, { marginLeft: 'auto' }]}>
+            <Ionicons name="bookmark-outline" size={24} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Post Stats */}
+        <View style={styles.postStats}>
+          <Text style={styles.likesCount}>{item.likes_count || 0} likes</Text>
+          <Text style={styles.commentsCount}>{item.comments_count || 0} comments</Text>
+          {item.feed_type && (
+            <Text style={styles.feedTypeLabel}>
+              {item.feed_type === 'friend' ? '👥 Friend' : item.feed_type === 'trending' ? '🔥 Trending' : '🏆 Competition'}
+            </Text>
+          )}
+        </View>
+
+        {/* Post Description */}
+        <View style={styles.postDescription}>
+          <Text style={styles.postUsernameText}>{item.author?.username || 'Anonymous'}</Text>
+          <Text style={styles.postCaption}>{item.content || ''}</Text>
+        </View>
+      </View>
+    );
+  }, [handleLike, handleComment, handleVote, posts]);
+
+  // Render feed composition indicator
+  const renderFeedComposition = () => {
+    if (!feedComposition || !showFeedInfo) return null;
+
+    return (
+      <View style={styles.feedCompositionContainer}>
+        <View style={styles.compositionRow}>
+          <View style={styles.compositionItem}>
+            <View style={[styles.compositionDot, { backgroundColor: '#4CAF50' }]} />
+            <Text style={styles.compositionText}>
+              Friends: {feedComposition.friends}
+            </Text>
+          </View>
+          <View style={styles.compositionItem}>
+            <View style={[styles.compositionDot, { backgroundColor: '#FF9800' }]} />
+            <Text style={styles.compositionText}>
+              Trending: {feedComposition.trending}
+            </Text>
           </View>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#666666" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Post Image */}
-      <Image source={{ uri: post.image }} style={styles.postImage} />
-
-      {/* Post Actions */}
-      <View style={styles.postActions}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleLike(post.id)}>
-          <Ionicons
-            name={post.isLiked ? "heart" : "heart-outline"}
-            size={24}
-            color={post.isLiked ? COLORS.like : COLORS.textSecondary}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => handleComment(post.id)}>
-          <Ionicons name="chatbubble-outline" size={24} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton}>
-          <Ionicons name="paper-plane-outline" size={24} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionButton, { marginLeft: 'auto' }]}>
-          <Ionicons name="bookmark-outline" size={24} color={COLORS.textSecondary} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Post Stats */}
-      <View style={styles.postStats}>
-        <Text style={styles.likesCount}>{post.likes} likes</Text>
-        <Text style={styles.commentsCount}>{post.comments} comments</Text>
-      </View>
-
-      {/* Post Description */}
-      <View style={styles.postDescription}>
-        <Text style={styles.postUsernameText}>{post.username}</Text>
-        <Text style={styles.postCaption}>{post.outfit}</Text>
-        <View style={styles.postTags}>
-          {post.items.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => handleHashtagPress(`#${item.replace(/\s+/g, '')}`)}
-            >
-              <Text style={styles.postTag}>#{item.replace(/\s+/g, '')}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.compositionRow}>
+          <View style={styles.compositionItem}>
+            <View style={[styles.compositionDot, { backgroundColor: '#9C27B0' }]} />
+            <Text style={styles.compositionText}>
+              Competitions: {feedComposition.competitions}
+            </Text>
+          </View>
+          <View style={styles.compositionItem}>
+            <Text style={styles.compositionText}>
+              Total: {feedComposition.total}
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  // Handle search
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setSearchResults([]);
+      return;
+    }
+
+    const filtered = posts.filter(post =>
+      post.author?.username?.toLowerCase().includes(query.toLowerCase()) ||
+      (post.content && post.content.toLowerCase().includes(query.toLowerCase()))
+    );
+    setSearchResults(filtered);
+  };
+
+  // Handle create post
+  const submitPost = () => {
+    if (newPostText.trim() || selectedImage) {
+      Alert.alert('Coming Soon', 'Create post functionality will be integrated with the intelligent feed!');
+      setNewPostText('');
+      setSelectedImage(null);
+      setCreatePostVisible(false);
+    } else {
+      Alert.alert('Error', 'Please add a caption or image to create a post.');
+    }
+  };
 
   return (
     <View style={styles.container}>
