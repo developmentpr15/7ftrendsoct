@@ -158,7 +158,7 @@ BEGIN
         COALESCE(p.likes_count, 0) as likes_count,
         COALESCE(p.comments_count, 0) as comments_count,
         COALESCE(p.shares_count, 0) as shares_count,
-        calculate_trending_score(p.id) * get_country_boost(user_country, COALESCE(u.country, 'US')) as trending_score,
+        calculate_trending_score(p.id) * get_country_boost(user_country, COALESCE(u.user_metadata->>'country', 'US')) as trending_score,
         'trending' as feed_type,
         u.username as author_username,
         u.avatar_url as author_avatar_url,
@@ -166,7 +166,7 @@ BEGIN
         EXISTS(SELECT 1 FROM likes l WHERE l.post_id = p.id AND l.user_id = current_user_id) as is_liked,
         NULL::UUID as competition_id,
         NULL::TEXT as competition_title,
-        ROW_NUMBER() OVER (ORDER BY calculate_trending_score(p.id) * get_country_boost(user_country, COALESCE(u.country, 'US')) DESC) as row_num
+        ROW_NUMBER() OVER (ORDER BY calculate_trending_score(p.id) * get_country_boost(user_country, COALESCE(u.user_metadata->>'country', 'US')) DESC) as row_num
     FROM posts p
     JOIN users u ON p.author_id = u.id
     WHERE p.visibility = 'public'
@@ -313,7 +313,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION refresh_feed_scores()
 RETURNS VOID AS $$
 BEGIN
-    -- Update posts with real-time engagement data
+    -- Update posts with real-time engagement data using LEFT JOINs
     UPDATE posts p SET
         likes_count = COALESCE(like_counts.like_count, 0),
         comments_count = COALESCE(comment_counts.comment_count, 0),
@@ -325,23 +325,21 @@ BEGIN
         FROM likes
         GROUP BY post_id
     ) like_counts
-    FROM (
+    LEFT JOIN (
         SELECT
             post_id,
             COUNT(*) as comment_count
         FROM comments
         GROUP BY post_id
-    ) comment_counts
-    FROM (
+    ) comment_counts ON p.id = comment_counts.post_id
+    LEFT JOIN (
         SELECT
             post_id,
             COUNT(*) as share_count
         FROM shares
         GROUP BY post_id
-    ) share_counts
-    WHERE p.id = like_counts.post_id
-    AND p.id = comment_counts.post_id
-    AND p.id = share_counts.post_id;
+    ) share_counts ON p.id = share_counts.post_id
+    WHERE p.id = like_counts.post_id;
 
     -- For posts with no engagement, ensure defaults
     UPDATE posts SET

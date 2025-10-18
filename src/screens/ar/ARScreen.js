@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,13 @@ import {
   TouchableOpacity,
   Image,
   Modal,
-  Alert
+  Alert,
+  StyleSheet
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import useAppStore from '../../store/appStore';
-import { COLORS } from '../../utils/constants';
-import styles from '../../styles/arStyles';
+import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';
 
 // Define wardrobe categories
 const WARDROBE_CATEGORIES = [
@@ -39,7 +39,7 @@ const sampleWardrobeItems = [
 
 const ARScreen = () => {
   const { captureARPhoto, arPhotos, deleteARPhoto, wardrobeItems } = useAppStore();
-  const [permission, requestPermission] = Camera.useCameraPermissions();
+  const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState('front');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [showGallery, setShowGallery] = useState(false);
@@ -49,6 +49,12 @@ const ARScreen = () => {
   const cameraRef = useRef(null);
 
   const availableItems = wardrobeItems.length > 0 ? wardrobeItems : sampleWardrobeItems;
+
+  useEffect(() => {
+    if (!permission) {
+      requestPermission();
+    }
+  }, [permission, requestPermission]);
 
   if (!permission) {
     return (
@@ -127,7 +133,7 @@ const ARScreen = () => {
   const takePicture = async () => {
     try {
       if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync({
+        const photo = await cameraRef.current.takePhotoAsync({
           quality: 0.8,
         });
 
@@ -220,7 +226,7 @@ const ARScreen = () => {
       </View>
 
       {isCameraActive ? (
-        <Camera ref={cameraRef} style={styles.camera} type={facing === 'front' ? Camera.Constants.Type.front : Camera.Constants.Type.back}>
+        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
           <View style={styles.cameraOverlay}>
             <View style={styles.arFrame}>
               <View style={[styles.arCorner, { top: -2, left: -2 }]} />
@@ -239,7 +245,7 @@ const ARScreen = () => {
               <Ionicons name="close" size={24} color={COLORS.surface} />
             </TouchableOpacity>
           </View>
-        </Camera>
+        </CameraView>
       ) : (
         <View style={styles.cameraPlaceholder}>
           <Ionicons name="camera" size={64} color={COLORS.textSecondary} />
@@ -500,5 +506,485 @@ const ARScreen = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  header: {
+    backgroundColor: COLORS.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.md,
+  },
+  logoContainer: {
+    flex: 1,
+  },
+  logoText: {
+    fontSize: FONTS.sizes.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.sm,
+  },
+  headerIconButton: {
+    padding: SIZES.xs,
+  },
+  notificationButton: {
+    padding: SIZES.xs,
+    position: 'relative',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.error,
+  },
+  flipCameraButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.round,
+    padding: SIZES.sm,
+  },
+  galleryButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: SIZES.round,
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: SIZES.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SIZES.xs,
+  },
+  galleryButtonText: {
+    color: COLORS.surface,
+    fontSize: FONTS.sizes.sm,
+    fontFamily: FONTS.medium,
+  },
+  title: {
+    fontSize: FONTS.sizes.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  permissionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.xl,
+  },
+  permissionText: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SIZES.md,
+    marginBottom: SIZES.sm,
+  },
+  permissionSubtext: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SIZES.lg,
+  },
+  startCameraButton: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: SIZES.xl,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.sm,
+    ...SHADOWS.sm,
+  },
+  startCameraButtonText: {
+    color: COLORS.surface,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+  },
+  camera: {
+    flex: 1,
+  },
+  cameraOverlay: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'space-between',
+  },
+  arFrame: {
+    flex: 1,
+    margin: SIZES.xl,
+    borderWidth: 2,
+    borderColor: COLORS.accent,
+    borderRadius: SIZES.sm,
+    position: 'relative',
+  },
+  arCorner: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderColor: COLORS.accent,
+  },
+  arText: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -100 }, { translateY: -10 }],
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    color: COLORS.surface,
+    paddingHorizontal: SIZES.sm,
+    paddingVertical: SIZES.xs,
+    borderRadius: SIZES.xs,
+    fontSize: FONTS.sizes.sm,
+  },
+  captureButton: {
+    alignSelf: 'center',
+    marginBottom: SIZES.xl,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: COLORS.surface,
+  },
+  captureButtonInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.surface,
+  },
+  exitCameraButton: {
+    position: 'absolute',
+    top: SIZES.xl,
+    right: SIZES.lg,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: SIZES.round,
+    padding: SIZES.sm,
+  },
+  cameraPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.xl,
+  },
+  cameraText: {
+    fontSize: FONTS.sizes.lg,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginTop: SIZES.md,
+  },
+  cameraSubtext: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SIZES.sm,
+    marginBottom: SIZES.xl,
+  },
+  arButtonContainer: {
+    flexDirection: 'row',
+    gap: SIZES.md,
+  },
+  wardrobeButton: {
+    backgroundColor: COLORS.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  galleryModal: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.lg,
+    width: '90%',
+    height: '80%',
+    ...SHADOWS.lg,
+  },
+  wardrobeSelectorModal: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.lg,
+    width: '95%',
+    height: '85%',
+    ...SHADOWS.lg,
+  },
+  avatarPreviewModal: {
+    backgroundColor: COLORS.surface,
+    borderRadius: SIZES.lg,
+    width: '90%',
+    maxHeight: '70%',
+    ...SHADOWS.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: SIZES.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  modalTitle: {
+    fontSize: FONTS.sizes.lg,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  doneButton: {
+    color: COLORS.accent,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+  },
+  createAvatarButton: {
+    color: COLORS.accent,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+  },
+  emptyGallery: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SIZES.xl,
+  },
+  emptyGalleryText: {
+    fontSize: FONTS.sizes.lg,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginTop: SIZES.md,
+  },
+  emptyGallerySubtext: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: SIZES.sm,
+  },
+  galleryList: {
+    flex: 1,
+  },
+  galleryItem: {
+    flexDirection: 'row',
+    padding: SIZES.md,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  galleryImage: {
+    width: 80,
+    height: 100,
+    borderRadius: SIZES.sm,
+  },
+  galleryItemInfo: {
+    flex: 1,
+    marginLeft: SIZES.md,
+    justifyContent: 'center',
+  },
+  galleryItemDate: {
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  galleryItemCamera: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.xs,
+  },
+  galleryItemOutfit: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.accent,
+    marginTop: SIZES.xs,
+  },
+  selectedItemsSummary: {
+    padding: SIZES.md,
+    backgroundColor: 'rgba(74, 20, 140, 0.1)',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  selectedItemsText: {
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+  },
+  selectedCategoriesText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    marginTop: SIZES.xs,
+  },
+  wardrobeCategoriesList: {
+    flex: 1,
+  },
+  wardrobeCategorySection: {
+    marginBottom: SIZES.lg,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SIZES.lg,
+    paddingVertical: SIZES.sm,
+    backgroundColor: 'rgba(74, 20, 140, 0.05)',
+  },
+  categoryEmoji: {
+    fontSize: FONTS.sizes.xl,
+    marginRight: SIZES.sm,
+  },
+  categoryTitle: {
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    flex: 1,
+  },
+  selectedIndicator: {
+    marginLeft: SIZES.sm,
+  },
+  categoryItemsScroll: {
+    paddingLeft: SIZES.lg,
+  },
+  wardrobeItem: {
+    marginRight: SIZES.sm,
+    alignItems: 'center',
+    width: 100,
+  },
+  wardrobeItemSelected: {
+    opacity: 0.8,
+  },
+  wardrobeItemImage: {
+    width: 80,
+    height: 100,
+    borderRadius: SIZES.sm,
+    marginBottom: SIZES.xs,
+  },
+  wardrobeItemName: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text,
+    textAlign: 'center',
+  },
+  itemSelectedBadge: {
+    position: 'absolute',
+    top: -5,
+    right: 15,
+    backgroundColor: COLORS.accent,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noItemsText: {
+    fontSize: FONTS.sizes.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    padding: SIZES.sm,
+  },
+  wardrobeActions: {
+    flexDirection: 'row',
+    padding: SIZES.lg,
+    gap: SIZES.md,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  wardrobeActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.sm,
+    gap: SIZES.xs,
+  },
+  cancelButton: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  cancelButtonText: {
+    color: COLORS.surface,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+  },
+  tryOnButton: {
+    backgroundColor: COLORS.accent,
+  },
+  tryOnButtonText: {
+    color: COLORS.surface,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+  },
+  avatarDisplay: {
+    alignItems: 'center',
+    padding: SIZES.xl,
+  },
+  avatarCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.lg,
+  },
+  avatarEmoji: {
+    fontSize: 50,
+  },
+  avatarTitle: {
+    fontSize: FONTS.sizes.xl,
+    fontFamily: FONTS.bold,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+  },
+  avatarSubtitle: {
+    fontSize: FONTS.sizes.md,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  avatarItemsDisplay: {
+    padding: SIZES.lg,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  avatarItemsTitle: {
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+    color: COLORS.text,
+    marginBottom: SIZES.sm,
+  },
+  avatarItem: {
+    alignItems: 'center',
+    marginRight: SIZES.md,
+  },
+  avatarItemImage: {
+    width: 60,
+    height: 75,
+    borderRadius: SIZES.xs,
+    marginBottom: SIZES.xs,
+  },
+  avatarItemName: {
+    fontSize: FONTS.sizes.xs,
+    color: COLORS.text,
+    width: 70,
+    textAlign: 'center',
+  },
+  avatarActions: {
+    flexDirection: 'row',
+    padding: SIZES.lg,
+    gap: SIZES.md,
+  },
+  avatarActionButton: {
+    flex: 1,
+    paddingVertical: SIZES.md,
+    borderRadius: SIZES.sm,
+  },
+  backToSelectionButton: {
+    backgroundColor: COLORS.textSecondary,
+  },
+  backToSelectionButtonText: {
+    color: COLORS.surface,
+    fontSize: FONTS.sizes.md,
+    fontFamily: FONTS.medium,
+    textAlign: 'center',
+  },
+});
 
 export default ARScreen;
