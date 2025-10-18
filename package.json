@@ -17,6 +17,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
     "@react-navigation/stack": "^6.4.1",
+    "@supabase/realtime-js": "^2.75.1",
     "@supabase/supabase-js": "^2.49.2",
     "expo": "^54.0.13",
     "expo-camera": "~17.0.8",

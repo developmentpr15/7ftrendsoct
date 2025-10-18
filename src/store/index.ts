@@ -14,6 +14,9 @@ export type { Competition, CompetitionEntry, CompetitionVote, LeaderboardEntry, 
 export { useWardrobeStore, useWardrobe, useOutfits, useAR, useWardrobeActions, useOutfitActions, useARActions, useWardrobeFilters } from './wardrobeStore';
 export type { WardrobeItem, Outfit, OutfitSuggestion, ARSession, WardrobeFilter, OutfitFilter } from './wardrobeStore';
 
+export { useRealtimeStore, useRealtime, useRealtimeNotifications, useRealtimeConnection, useRealtimeSubscriptions } from './realtimeStore';
+export type { RealtimeNotification, RealtimeEvent, RealtimeConnectionState } from './realtimeStore';
+
 // Re-export common types
 export type {
   StoreApi,

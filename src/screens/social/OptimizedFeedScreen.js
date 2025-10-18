@@ -29,6 +29,9 @@ import {
 import OptimizedPostCard from '../../components/feed/OptimizedPostCard';
 import { useFeed, useFeedActions, useFeedFilters } from '../../store/feed';
 import { useAuth } from '../../store/sessionStore';
+import { useRealtimeConnection, useRealtimeSubscriptions } from '../../store/realtimeStore';
+import RealtimeNotifications from '../../components/ui/RealtimeNotifications';
+import RealtimeConnectionStatus from '../../components/ui/RealtimeConnectionStatus';
 
 // Optimized item dimensions
 const ITEM_HEIGHT = 400; // Estimated item height for FlatList optimization
@@ -46,6 +49,8 @@ const OptimizedFeedScreen = ({ navigation }) => {
   const { posts, loading, refreshing, loadingMore, error, offlineMode } = useFeed();
   const { fetchFeed, fetchMorePosts, refreshFeed, likePost, unlikePost } = useFeedActions();
   const { filters, setFilters, clearFilters } = useFeedFilters();
+  const { isConnected, initialize: initializeRealtime } = useRealtimeConnection();
+  const { subscribeToPost, unsubscribeFromPost } = useRealtimeSubscriptions();
 
   // Filter options
   const filterOptions = useMemo(() => [
@@ -274,6 +279,31 @@ const OptimizedFeedScreen = ({ navigation }) => {
   // Optimized onEndReached threshold
   const onEndReachedThreshold = 0.5;
 
+  // Initialize real-time subscriptions
+  useEffect(() => {
+    if (user) {
+      InteractionManager.runAfterInteractions(() => {
+        initializeRealtime();
+      });
+    }
+  }, [user, initializeRealtime]);
+
+  // Subscribe to visible posts for real-time updates
+  useEffect(() => {
+    const visiblePostIds = posts.slice(0, 10).map(post => post.id); // Subscribe to first 10 posts
+
+    visiblePostIds.forEach(postId => {
+      subscribeToPost(postId);
+    });
+
+    // Cleanup subscriptions for posts that are no longer visible
+    return () => {
+      visiblePostIds.forEach(postId => {
+        unsubscribeFromPost(postId);
+      });
+    };
+  }, [posts, subscribeToPost, unsubscribeFromPost]);
+
   // Focus effect to refresh data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
@@ -310,6 +340,12 @@ const OptimizedFeedScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Real-time Connection Status */}
+      <RealtimeConnectionStatus />
+
+      {/* Real-time Notifications */}
+      <RealtimeNotifications />
 
       <Animated.FlatList
         ref={flatListRef}

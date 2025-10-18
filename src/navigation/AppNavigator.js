@@ -7,9 +7,12 @@ import AuthNavigator from './AuthNavigator';
 import TabNavigator from './TabNavigator';
 import useAuthStore from '../store/authStore';
 import { testSupabaseConnection } from '../utils/supabase';
+import { initializeStores } from '../store';
+import { useRealtimeConnection } from '../store/realtimeStore';
 
 const AppNavigator = () => {
   const { user, isLoading, isAuthenticated, initAuth } = useAuthStore();
+  const { isConnected: realtimeConnected, initialize: initializeRealtime } = useRealtimeConnection();
   const [connectionStatus, setConnectionStatus] = useState('loading');
   const [connectionError, setConnectionError] = useState(null);
 
@@ -34,8 +37,24 @@ const AppNavigator = () => {
 
     checkConnection();
 
+    // Initialize stores and real-time connections
+    const initializeApp = async () => {
+      try {
+        // Initialize all stores
+        await initializeStores();
+
+        // Initialize real-time service
+        await initializeRealtime();
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+      }
+    };
+
     // Initialize auth state when component mounts
     const subscription = initAuth();
+
+    // Initialize app stores and real-time
+    initializeApp();
 
     // Cleanup subscription on unmount
     return () => {
