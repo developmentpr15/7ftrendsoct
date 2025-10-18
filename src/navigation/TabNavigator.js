@@ -14,6 +14,7 @@ import {
   WardrobeScreen,
   CompetitionScreen
 } from '../screens';
+import OptimizedFeedScreen from '../screens/social/OptimizedFeedScreen';
 
 const Tab = createBottomTabNavigator();
 const HomeStack = createNativeStackNavigator();
@@ -31,7 +32,7 @@ const HomeStackNavigator = () => {
     <HomeStack.Navigator>
       <HomeStack.Screen
         name="HomeMain"
-        component={HomeScreen}
+        component={OptimizedFeedScreen}
         options={{ headerShown: false }}
       />
     </HomeStack.Navigator>

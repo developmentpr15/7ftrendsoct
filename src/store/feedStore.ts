@@ -59,6 +59,9 @@ export interface PaginationState {
   totalPages: number;
   totalItems: number;
   itemsPerPage: number;
+  cursor: string | null;
+  nextCursor: string | null;
+  hasMore: boolean;
 }
 
 export interface FeedFilter {
@@ -149,7 +152,10 @@ export const useFeedStore = create<FeedStore>()(
           hasPreviousPage: false,
           totalPages: 1,
           totalItems: 0,
-          itemsPerPage: 20,
+          itemsPerPage: 10, // Optimized for mobile
+          cursor: null,
+          nextCursor: null,
+          hasMore: true,
         },
         filters: {
           feedType: 'all',
@@ -191,20 +197,29 @@ export const useFeedStore = create<FeedStore>()(
             }
 
             const limit = state.pagination.itemsPerPage;
-            const offset = refresh ? 0 : (state.pagination.currentPage - 1) * limit;
+            const cursor = refresh ? null : state.pagination.cursor;
 
-            // Call Supabase RPC function
-            const { data, error } = await supabase.rpc('get_user_feed', {
-              current_user_id: user.id,
-              limit_count: limit,
-              offset_count: offset,
+            // Prepare filters for RPC
+            const filters = {
+              country: state.filters.feedType === 'regional' ? user.country : undefined,
+              style: undefined, // Can be added later
+              time_range: state.filters.timeRange === 'all' ? undefined : state.filters.timeRange,
+            };
+
+            // Call new cursor-based pagination RPC function
+            const { data, error } = await supabase.rpc('get_paginated_feed', {
+              p_user_id: user.id,
+              p_cursor: cursor,
+              p_limit: limit,
+              p_feed_type: state.filters.feedType || 'all',
+              p_filters: filters,
             });
 
             if (error) {
               console.error('Feed fetch error:', error);
 
               // Try fallback feed
-              const fallbackData = await getFallbackFeed(user.id, limit, offset);
+              const fallbackData = await getFallbackFeed(user.id, limit, 0);
               set({
                 posts: fallbackData,
                 offlineMode: true,
@@ -214,7 +229,7 @@ export const useFeedStore = create<FeedStore>()(
               return;
             }
 
-            if (data) {
+            if (data && data.length > 0) {
               // Transform data
               const transformedPosts = data.map(transformPostData);
 
@@ -225,25 +240,43 @@ export const useFeedStore = create<FeedStore>()(
                 set({ posts: [...state.posts, ...transformedPosts] });
               }
 
-              // Cache posts
+              // Cache posts (keep most recent 100)
+              const updatedCache = refresh
+                ? transformedPosts
+                : [...state.cachedPosts, ...transformedPosts].slice(0, 100);
+
               set({
-                cachedPosts: refresh ? transformedPosts : [...state.cachedPosts, ...transformedPosts].slice(0, 100),
+                cachedPosts: updatedCache,
                 lastFetchTime: Date.now(),
                 offlineMode: false,
               });
 
               // Calculate analytics
-              const analytics = calculateFeedAnalytics(transformedPosts);
+              const analytics = calculateFeedAnalytics(refresh ? transformedPosts : [...state.posts, ...transformedPosts]);
               set({ analytics });
 
-              // Update pagination
-              const hasNextPage = transformedPosts.length === limit;
+              // Update cursor-based pagination
+              const lastPost = data[data.length - 1];
+              const newCursor = lastPost?.created_at;
+              const hasMore = data.length === limit;
+
               set({
                 pagination: {
                   ...state.pagination,
-                  hasNextPage,
+                  cursor: refresh ? newCursor : state.pagination.cursor,
+                  nextCursor: newCursor,
+                  hasMore,
                   currentPage: refresh ? 1 : state.pagination.currentPage + 1,
-                  totalItems: state.pagination.totalItems + transformedPosts.length,
+                  totalItems: refresh ? transformedPosts.length : state.pagination.totalItems + transformedPosts.length,
+                },
+              });
+            } else if (data && data.length === 0) {
+              // No more posts
+              set({
+                pagination: {
+                  ...state.pagination,
+                  hasMore: false,
+                  nextCursor: null,
                 },
               });
             }
@@ -263,7 +296,7 @@ export const useFeedStore = create<FeedStore>()(
 
         fetchMorePosts: async () => {
           const state = get();
-          if (state.loadingMore || !state.pagination.hasNextPage) return;
+          if (state.loadingMore || !state.pagination.hasMore) return;
 
           try {
             set({ loadingMore: true });
@@ -630,36 +663,36 @@ export const useFeedStore = create<FeedStore>()(
 // Helper functions
 function transformPostData(data: any): Post {
   return {
-    id: data.post_id,
-    author_id: data.author_id,
+    id: data.id || data.post_id,
+    author_id: data.user_id || data.author_id,
     author: {
-      id: data.author_id,
-      username: data.author_username || 'Anonymous',
-      avatar_url: data.author_avatar_url,
-      full_name: data.author_full_name,
+      id: data.user_id || data.author_id,
+      username: data.username || data.author_username || 'Anonymous',
+      avatar_url: data.avatar_url || data.author_avatar_url,
+      full_name: data.full_name || data.author_full_name,
     },
     content: data.content || '',
-    images: Array.isArray(data.images) ? data.images : [],
+    images: data.image_url ? [data.image_url] : (Array.isArray(data.images) ? data.images : []),
     created_at: data.created_at,
     likes_count: data.likes_count || 0,
     comments_count: data.comments_count || 0,
     shares_count: data.shares_count || 0,
     is_liked: data.is_liked || false,
-    feed_type: data.feed_type,
-    relationship_type: data.relationship_type,
-    friendship_boost: data.friendship_boost || 1.0,
-    trending_score: parseFloat(data.trending_score) || 0,
+    feed_type: data.feed_type || 'general',
+    relationship_type: data.relationship_status || 'other',
+    friendship_boost: data.relationship_status === 'friend' ? 1.5 : 1.0,
+    trending_score: calculateEngagementRate(data),
     competition: data.competition_id ? {
       id: data.competition_id,
-      title: data.competition_title,
+      title: data.competition_title || 'Competition',
     } : undefined,
     metadata: {
       engagement_rate: calculateEngagementRate(data),
       time_ago: getTimeAgo(data.created_at),
       is_trending: data.feed_type === 'trending',
-      is_mutual_friend: data.feed_type === 'mutual_friend',
-      is_following: data.feed_type === 'following',
-      is_own_post: data.feed_type === 'own',
+      is_mutual_friend: data.relationship_status === 'friend',
+      is_following: data.relationship_status === 'following',
+      is_own_post: data.user_id === useSessionStore.getState().user?.id,
       is_discover: data.feed_type === 'trending',
       is_competition_entry: data.feed_type === 'competition',
     },
