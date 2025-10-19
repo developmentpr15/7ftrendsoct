@@ -269,7 +269,7 @@ const OptimizedPostCard = memo(({
               color={post.is_liked ? '#FF6B6B' : '#666'}
             />
           </TouchableOpacity>
-        </TouchableOpacity>
+        </Animated.View>
 
         <TouchableOpacity onPress={handleComment} style={styles.actionButton}>
           <Ionicons name="chatbubble-outline" size={20} color="#666" />

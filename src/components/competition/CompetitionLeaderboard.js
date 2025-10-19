@@ -177,14 +177,18 @@ const CompetitionLeaderboard = ({
         </View>
 
         <View style={styles.participantInfo}>
-          <Image
-            source={
-              item.participant_avatar_url
-                ? { uri: item.participant_avatar_url }
-                : require('../../assets/images/default-avatar.png')
-            }
-            style={styles.avatar}
-          />
+          {item.participant_avatar_url ? (
+            <Image
+              source={{ uri: item.participant_avatar_url }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.defaultAvatar]}>
+              <Text style={styles.defaultAvatarText}>
+                {item.participant_username ? item.participant_username.charAt(0).toUpperCase() : 'U'}
+              </Text>
+            </View>
+          )}
           <View style={styles.participantDetails}>
             <Text style={[styles.username, isCurrentUser && styles.currentUserText]}>
               {item.participant_username}
@@ -621,6 +625,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SIZES.sm,
     paddingVertical: 2,
     borderRadius: SIZES.xs,
+  },
+  defaultAvatar: {
+    backgroundColor: '#4ECDC4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  defaultAvatarText: {
+    color: '#fff',
+    fontSize: FONTS.sizes.md,
+    fontWeight: 'bold',
   },
 });
 

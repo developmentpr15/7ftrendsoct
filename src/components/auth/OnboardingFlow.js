@@ -691,8 +691,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
                   {step.title}
                 </Text>
               </View>
-            );
-          })}
+          ))}
         </View>
       </View>
 
