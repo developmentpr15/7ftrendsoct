@@ -6,8 +6,12 @@ import {
   StyleSheet,
   ViewStyle,
   TextStyle,
+  NativeSyntheticEvent,
+  TextInputFocusEventData,
 } from 'react-native';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';
+
+import { KeyboardTypeOptions } from 'react-native';
 
 const Input = ({
   label,
@@ -31,15 +35,37 @@ const Input = ({
   leftIcon,
   rightIcon,
   placeholderTextColor,
+}: {
+  label?: string;
+  placeholder?: string;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  onFocus?: (e: any) => void;
+  onBlur?: (e: any) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
+  error?: string;
+  disabled?: boolean;
+  multiline?: boolean;
+  numberOfLines?: number;
+  style?: ViewStyle;
+  inputStyle?: TextStyle;
+  labelStyle?: TextStyle;
+  errorStyle?: TextStyle;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  placeholderTextColor?: string;
 }) => {
   const [isFocused, setIsFocused] = React.useState(false);
 
-  const handleFocus = (e) => {
+  const handleFocus = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(true);
     onFocus?.(e);
   };
 
-  const handleBlur = (e) => {
+  const handleBlur = (e: NativeSyntheticEvent<TextInputFocusEventData>) => {
     setIsFocused(false);
     onBlur?.(e);
   };
@@ -74,7 +100,7 @@ const Input = ({
       fontFamily: FONTS.regular,
       color: COLORS.text,
       paddingVertical: multiline ? SIZES.sm : SIZES.md,
-      minHeight: multiline ? numberOfLines * 20 : 44,
+      minHeight: multiline ? (numberOfLines || 1) * 20 : 44,
     };
   };
 

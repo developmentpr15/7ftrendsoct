@@ -8,7 +8,15 @@ import {
 } from 'react-native';
 import { COLORS, SIZES, FONTS } from '../../utils/constants';
 
-const Loading = ({
+interface LoadingProps {
+  size?: 'small' | 'large';
+  color?: string;
+  text?: string;
+  overlay?: boolean;
+  style?: ViewStyle;
+}
+
+const Loading: React.FC<LoadingProps> = ({
   size = 'small',
   color = COLORS.accent,
   text,

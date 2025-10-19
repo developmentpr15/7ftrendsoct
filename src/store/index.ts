@@ -1,21 +1,81 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // Main store export file
 // This file exports all stores and provides a unified interface
 
 // Store imports
-export { useSessionStore, useAuth, useUserPreferences, useAuthActions, initializeSessionManagement, cleanupSessionManagement } from './sessionStore';
-export type { User, UserPreferences } from './sessionStore';
+import { useSessionStore, useAuth, useUserPreferences, useAuthActions, initializeSessionManagement, cleanupSessionManagement } from './sessionStore';
+import type { User, UserPreferences } from './sessionStore';
 
-export { useFeedStore, useFeed, useFeedActions, useFeedFilters, useFeedPagination } from './feedStore';
-export type { Post, FeedAnalytics, PaginationState, FeedFilter } from './feedStore';
+import { useFeedStore, useFeed, useFeedActions, useFeedFilters, useFeedPagination } from './feedStore';
+import type { Post, FeedAnalytics, PaginationState, FeedFilter } from './feedStore';
 
-export { useCompetitionStore, useCompetitions, useCurrentCompetition, useCompetitionActions, useCompetitionSubmission, useCompetitionVoting, useCompetitionLeaderboard } from './competitionStore';
-export type { Competition, CompetitionEntry, CompetitionVote, LeaderboardEntry, CompetitionFilter } from './competitionStore';
+import { useCompetitionStore, useCompetitions, useCurrentCompetition, useCompetitionActions, useCompetitionSubmission, useCompetitionVoting, useCompetitionLeaderboard } from './competitionStore';
+import type { Competition, CompetitionEntry, CompetitionVote, LeaderboardEntry, CompetitionFilter } from './competitionStore';
 
-export { useWardrobeStore, useWardrobe, useOutfits, useAR, useWardrobeActions, useOutfitActions, useARActions, useWardrobeFilters, useAITaggingActions } from './wardrobeStore';
-export type { WardrobeItem, Outfit, OutfitSuggestion, ARSession, WardrobeFilter, OutfitFilter } from './wardrobeStore';
+import { useWardrobeStore, useWardrobe, useOutfits, useAR, useWardrobeActions, useOutfitActions, useARActions, useWardrobeFilters, useAITaggingActions } from './wardrobeStore';
+import type { WardrobeItem, Outfit, OutfitSuggestion, ARSession, WardrobeFilter, OutfitFilter } from './wardrobeStore';
 
-export { useRealtimeStore, useRealtime, useRealtimeNotifications, useRealtimeConnection, useRealtimeSubscriptions } from './realtimeStore';
-export type { RealtimeNotification, RealtimeEvent, RealtimeConnectionState } from './realtimeStore';
+import { useRealtimeStore, useRealtime, useRealtimeNotifications, useRealtimeConnection, useRealtimeSubscriptions } from './realtimeStore';
+import type { RealtimeNotification, RealtimeEvent, RealtimeConnectionState } from './realtimeStore';
+
+export {
+    useSessionStore,
+    useAuth,
+    useUserPreferences,
+    useAuthActions,
+    initializeSessionManagement,
+    cleanupSessionManagement,
+    useFeedStore,
+    useFeed,
+    useFeedActions,
+    useFeedFilters,
+    useFeedPagination,
+    useCompetitionStore,
+    useCompetitions,
+    useCurrentCompetition,
+    useCompetitionActions,
+    useCompetitionSubmission,
+    useCompetitionVoting,
+    useCompetitionLeaderboard,
+    useWardrobeStore,
+    useWardrobe,
+    useOutfits,
+    useAR,
+    useWardrobeActions,
+    useOutfitActions,
+    useARActions,
+    useWardrobeFilters,
+    useAITaggingActions,
+    useRealtimeStore,
+    useRealtime,
+    useRealtimeNotifications,
+    useRealtimeConnection,
+    useRealtimeSubscriptions,
+};
+
+export type {
+    User,
+    UserPreferences,
+    Post,
+    FeedAnalytics,
+    PaginationState,
+    FeedFilter,
+    Competition,
+    CompetitionEntry,
+    CompetitionVote,
+    LeaderboardEntry,
+    CompetitionFilter,
+    WardrobeItem,
+    Outfit,
+    OutfitSuggestion,
+    ARSession,
+    WardrobeFilter,
+    OutfitFilter,
+    RealtimeNotification,
+    RealtimeEvent,
+    RealtimeConnectionState,
+};
 
 // Re-export common types
 export type {

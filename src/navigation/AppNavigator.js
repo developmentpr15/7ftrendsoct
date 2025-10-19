@@ -5,7 +5,7 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { COLORS, SIZES, FONTS } from '../utils/constants';
 import AuthNavigator from './AuthNavigator';
 import TabNavigator from './TabNavigator';
-import useAuthStore from '../store/authStore';
+import { useAuthStore } from '../store/authStore';
 import { testSupabaseConnection } from '../utils/supabase';
 import { initializeStores } from '../store';
 import { useRealtimeConnection } from '../store/realtimeStore';

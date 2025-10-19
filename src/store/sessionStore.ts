@@ -146,7 +146,7 @@ export const useSessionStore = create<SessionStore>()(
                 set({
                   user: {
                     id: data.user.id,
-                    username: data.user.user_metadata?.username || data.user.email?.split('@')[0],
+                    username: data.user.user_metadata?.username || data.user.email?.split('@')[0] || '',
                     email: data.user.email!,
                     full_name: data.user.user_metadata?.full_name,
                     avatar_url: data.user.user_metadata?.avatar_url,
@@ -208,7 +208,7 @@ export const useSessionStore = create<SessionStore>()(
                 .from('users')
                 .insert({
                   id: data.user.id,
-                  username: userData.username,
+                  username: userData.username || '',
                   email: data.user.email!,
                   full_name: userData.full_name,
                   avatar_url: userData.avatar_url,
@@ -229,7 +229,7 @@ export const useSessionStore = create<SessionStore>()(
               set({
                 user: {
                   id: data.user.id,
-                  username: userData.username || data.user.email?.split('@')[0],
+                  username: userData.username || data.user.email?.split('@')[0] || '',
                   email: data.user.email!,
                   full_name: userData.full_name,
                   avatar_url: userData.avatar_url,
@@ -386,9 +386,8 @@ export const useSessionStore = create<SessionStore>()(
             const fileName = `avatars/${state.user.id}/${Date.now()}.jpg`;
             const { error: uploadError } = await supabase.storage
               .from('avatars')
-              .upload(fileName, {
-                uri: imageUri,
-                type: 'image/jpeg',
+              .upload(fileName, imageUri, {
+                contentType: 'image/jpeg',
               });
 
             if (uploadError) {
@@ -464,7 +463,7 @@ export const useSessionStore = create<SessionStore>()(
               set({
                 user: profile || {
                   id: session.user.id,
-                  username: session.user.user_metadata?.username || session.user.email?.split('@')[0],
+                  username: session.user.user_metadata?.username || session.user.email?.split('@')[0] || '',
                   email: session.user.email!,
                   full_name: session.user.user_metadata?.full_name,
                   avatar_url: session.user.user_metadata?.avatar_url,

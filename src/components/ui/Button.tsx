@@ -4,12 +4,26 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  View,
   ViewStyle,
   TextStyle,
 } from 'react-native';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';
 
-const Button = ({
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'small' | 'medium' | 'large';
+  loading?: boolean;
+  disabled?: boolean;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
+  icon?: React.ReactNode;
+  iconPosition?: 'left' | 'right';
+}
+
+const Button: React.FC<ButtonProps> = ({
   title,
   onPress,
   variant = 'primary',

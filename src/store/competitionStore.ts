@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
-import { useSessionStore } from './sessionStore';
-import { competitionVotingService } from '../services/competitionVotingService';
+import { useSessionStore, User } from './sessionStore';
+import { competitionVotingService, LeaderboardEntry as ServiceLeaderboardEntry } from '../services/competitionVotingService';
 
 // Types
 export interface Competition {
@@ -107,22 +107,7 @@ export interface CompetitionVote {
   created_at: string;
 }
 
-export interface LeaderboardEntry {
-  id: string;
-  competition_id: string;
-  user_id: string;
-  participant: {
-    username: string;
-    avatar_url?: string;
-    full_name?: string;
-  };
-  placement: number;
-  score: number;
-  votes_received: number;
-  points_awarded: number;
-  entry: CompetitionEntry;
-  created_at: string;
-}
+export interface LeaderboardEntry extends ServiceLeaderboardEntry {}
 
 export interface CompetitionFilter {
   status?: Competition['status'][];
@@ -574,13 +559,18 @@ export const useCompetitionStore = create<CompetitionStore>()(
               if (result.action === 'vote_removed') {
                 newVotes.delete(entryId);
               } else {
-                newVotes.set(entryId, {
-                  id: entryId, // Use entryId as temporary ID
-                  entry_id: entryId,
-                  voter_id: useSessionStore.getState().user?.id,
-                  vote_type: 'public',
-                  created_at: new Date().toISOString(),
-                });
+                const user = useSessionStore.getState().user;
+                if (user) {
+                  newVotes.set(entryId, {
+                    id: entryId, // Use entryId as temporary ID
+                    entry_id: entryId,
+                    voter_id: user.id,
+                    vote_type: 'public',
+                    created_at: new Date().toISOString(),
+                    score: 1,
+                    is_anonymous: false,
+                  });
+                }
               }
               set({ userVotes: newVotes });
 
@@ -631,21 +621,26 @@ export const useCompetitionStore = create<CompetitionStore>()(
         fetchUserVotes: async (competitionId: string) => {
           try {
             const votingStatus = await competitionVotingService.getUserVotingStatus(competitionId);
+            const user = useSessionStore.getState().user;
 
-            const votesMap = new Map();
-            votingStatus.forEach((status) => {
-              if (status.has_voted) {
-                votesMap.set(status.entry_id, {
-                  id: status.entry_id,
-                  entry_id: status.entry_id,
-                  voter_id: useSessionStore.getState().user?.id,
-                  vote_type: 'public',
-                  created_at: status.voted_at,
-                });
-              }
-            });
+            if (user) {
+              const votesMap = new Map();
+              votingStatus.forEach((status) => {
+                if (status.has_voted) {
+                  votesMap.set(status.entry_id, {
+                    id: status.entry_id,
+                    entry_id: status.entry_id,
+                    voter_id: user.id,
+                    vote_type: 'public',
+                    created_at: status.voted_at,
+                    score: 1,
+                    is_anonymous: false,
+                  });
+                }
+              });
 
-            set({ userVotes: votesMap });
+              set({ userVotes: votesMap });
+            }
 
           } catch (error: any) {
             console.error('Fetch user votes error:', error);
@@ -796,17 +791,6 @@ export const useCompetitionStore = create<CompetitionStore>()(
           // Check excluded countries
           if (competition.excluded_countries && user.country && competition.excluded_countries.includes(user.country)) {
             return false;
-          }
-
-          // Check age restrictions
-          if (competition.age_restriction) {
-            const userAge = user.date_of_birth ? calculateAge(user.date_of_birth) : 0;
-            if (competition.age_restriction.min_age && userAge < competition.age_restriction.min_age) {
-              return false;
-            }
-            if (competition.age_restriction.max_age && userAge > competition.age_restriction.max_age) {
-              return false;
-            }
           }
 
           return true;

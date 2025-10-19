@@ -1,9 +1,7 @@
-// Legacy App Store - Compatibility Layer
-// This file provides backward compatibility while migrating to modular stores
-
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 // Import from new modular stores
 import {
@@ -127,8 +125,8 @@ export const useAppStore = create<LegacyAppStore>()(
         };
 
         // Use the new wardrobe store
-        const { addItem } = useWardrobeStore.getState();
-        addItem(modernItem);
+        const { addWardrobeItem } = useWardrobeStore.getState();
+        addWardrobeItem(modernItem);
       },
 
       removeWardrobeItem: (id) => {
@@ -337,10 +335,10 @@ export const migrateToModularStores = async () => {
     // Migrate wardrobe items
     if (legacyStore.wardrobeItems.length > 0) {
       console.log(`Migrating ${legacyStore.wardrobeItems.length} wardrobe items`);
-      const { addItem } = useWardrobeStore.getState();
+      const { addWardrobeItem } = useWardrobeStore.getState();
 
       for (const legacyItem of legacyStore.wardrobeItems) {
-        await addItem({
+        await addWardrobeItem({
           name: legacyItem.name || 'Migrated Item',
           description: legacyItem.description,
           category: legacyItem.category || 'top',

@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../utils/constants';
-import useAuthStore from '../store/authStore';
+import { useAuthStore } from '../store/authStore';
 import { signOut } from '../utils/auth';
 import { ConnectionStatus } from '../components';
 import {

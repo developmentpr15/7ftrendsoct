@@ -7,7 +7,18 @@ import {
 } from 'react-native';
 import { COLORS, SIZES, SHADOWS } from '../../utils/constants';
 
-const Card = ({
+interface CardProps {
+  children: React.ReactNode;
+  style?: ViewStyle;
+  onPress?: () => void;
+  padding?: number;
+  margin?: number;
+  shadow?: 'sm' | 'md' | 'lg';
+  borderRadius?: number;
+  backgroundColor?: string;
+}
+
+const Card: React.FC<CardProps> = ({
   children,
   style,
   onPress,

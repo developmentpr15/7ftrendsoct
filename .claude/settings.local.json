@@ -34,7 +34,11 @@
       "Bash(npx supabase link:*)",
       "Bash(npx expo install:*)",
       "Bash(npx supabase db push:*)",
-      "Bash(npx react-native start:*)"
+      "Bash(npx react-native start:*)",
+      "Bash(dir:*)",
+      "Bash(npx react-native bundle:*)",
+      "Bash(npx @expo/metro-config node_modules/metro/src/cli.js bundle:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

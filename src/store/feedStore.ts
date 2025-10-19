@@ -39,6 +39,7 @@ export interface Post {
     is_discover: boolean;
     is_competition_entry: boolean;
   };
+  engagement?: number;
 }
 
 export interface FeedAnalytics {
@@ -65,7 +66,7 @@ export interface PaginationState {
 }
 
 export interface FeedFilter {
-  feedType?: 'all' | 'friends' | 'trending' | 'competitions';
+  feedType?: 'all' | 'friends' | 'trending' | 'competitions' | 'regional';
   timeRange?: 'today' | 'week' | 'month' | 'all';
   hasImages?: boolean;
   contentType?: 'posts' | 'competitions' | 'all';
@@ -598,6 +599,9 @@ export const useFeedStore = create<FeedStore>()(
               totalPages: 1,
               totalItems: 0,
               itemsPerPage: 20,
+              cursor: null,
+              nextCursor: null,
+              hasMore: true,
             },
           });
         },
@@ -710,7 +714,7 @@ function calculateEngagementRate(post: any): number {
 function getTimeAgo(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
-  const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
 
   if (diffInMinutes < 1) return 'Just now';
   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
@@ -760,7 +764,7 @@ function calculateFeedAnalytics(posts: Post[]): FeedAnalytics {
   });
 
   analytics.average_engagement = analytics.total_posts > 0 ? totalEngagement / analytics.total_posts : 0;
-  analytics.top_performing_posts = [topPost].filter(Boolean);
+  analytics.top_performing_posts = [topPost].filter(Boolean) as Post[];
 
   return analytics;
 }

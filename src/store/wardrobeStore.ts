@@ -86,7 +86,8 @@ export interface Outfit {
     ar_config?: any;
     styling_tips?: string[];
     occasions_suitable?: string[];
-    color_palette?: string[];
+    colorPalette?: string[];
+    duplicated_from?: string;
   };
   created_at: string;
   updated_at: string;
@@ -507,9 +508,8 @@ export const useWardrobeStore = create<WardrobeStore>()(
             const fileName = `wardrobe-items/${user.id}/${itemId}/${Date.now()}.jpg`;
             const { error: uploadError } = await supabase.storage
               .from('wardrobe-images')
-              .upload(fileName, {
-                uri: imageUri,
-                type: 'image/jpeg',
+              .upload(fileName, imageUri, {
+                contentType: 'image/jpeg',
               });
 
             if (uploadError) {
@@ -946,7 +946,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
           }
         },
 
-        dismissOutfitSuggestion: (suggestionId: string) => {
+        dismissOutfitSuggestion: async (suggestionId: string) => {
           set({
             outfitSuggestions: get().outfitSuggestions.filter(
               suggestion => suggestion.id !== suggestionId
@@ -1208,8 +1208,8 @@ export const useWardrobeStore = create<WardrobeStore>()(
           const items = get().wardrobeItems;
           const filteredItems = items.filter(item => {
             if (filters.category && !filters.category.includes(item.category)) return false;
-            if (filters.occasion && !filters.occasion.some(occ => item.occasion?.includes(occ))) return false;
-            if (filters.season && !filters.season.some(season => item.season?.includes(season))) return false;
+            if (filters.occasion && !filters.occasion.some((occ: string) => item.occasion?.includes(occ))) return false;
+            if (filters.season && !filters.season.some((season: string) => item.season?.includes(season))) return false;
             if (filters.color && !filters.color.includes(item.color)) return false;
             return true;
           });
@@ -1241,7 +1241,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
                 name: `Generated Outfit ${i + 1}`,
                 items: outfitItems,
                 occasion: filters.occasion?.[0] || 'casual',
-                style_tags: styles,
+                style_tags: styles as string[],
                 images: outfitItemsData.map(item => item.images[0]).filter(Boolean),
                 is_favorite: false,
                 is_public: false,
@@ -1249,7 +1249,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
                 shares_count: 0,
                 wear_count: 0,
                 metadata: {
-                  color_palette,
+                  colorPalette,
                   generated_at: new Date().toISOString(),
                 },
                 created_at: new Date().toISOString(),

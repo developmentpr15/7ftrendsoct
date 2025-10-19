@@ -1,16 +1,20 @@
 // Comprehensive Authentication Service
 // Handles social authentication and profile creation for 7Ftrends
 
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+import * as AuthSession from 'expo-auth-session';
+import * as Crypto from 'expo-crypto';
 import { AccessToken, GraphRequest, GraphRequestManager, LoginManager } from 'react-native-fbsdk';
 import { supabase } from '../utils/supabase';
 import { Platform, Alert } from 'react-native';
 
+function toHexString(bytes: Uint8Array): string {
+  return bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, '0'), '');
+}
+
 // Social auth result types
 export interface SocialAuthResult {
+// ... (rest of the file is unchanged)
+
   success: boolean;
   user?: any;
   profile?: any;
@@ -115,17 +119,21 @@ export const STYLE_PREFERENCES = {
 
 class AuthService {
   constructor() {
-    this.initializeGoogleSignIn();
+    // No initialization needed for expo-auth-session
   }
 
-  // Initialize Google Sign-In
-  private initializeGoogleSignIn() {
-    GoogleSignin.configure({
-      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      offlineAccess: true,
-      hostedDomain: '',
-      forceCodeForRefreshToken: true,
-    });
+  // Google OAuth configuration
+  private getGoogleOAuthConfig() {
+    return {
+      clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      redirectUri: AuthSession.makeRedirectUri({
+        scheme: undefined, // Use default scheme
+        path: 'auth',
+        preferLocalhost: true,
+      }),
+      scopes: ['openid', 'profile', 'email'],
+      responseType: 'id_token',
+    };
   }
 
   // Check if username is available
@@ -190,61 +198,104 @@ class AuthService {
     }
   }
 
-  // Google Sign-In
+  // Google Sign-In using expo-auth-session
   async signInWithGoogle(): Promise<SocialAuthResult> {
     try {
-      await GoogleSignin.hasPlayServices();
-      const userInfo = await GoogleSignin.signIn();
+      const config = this.getGoogleOAuthConfig();
 
-      // Check if user exists in Supabase
-      const { data: existingUser, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', userInfo.user.id)
-        .single();
-
-      if (userError && userError.code !== 'PGRST116') {
-        throw userError;
+      if (!config.clientId) {
+        throw new Error('Google Web Client ID not configured');
       }
 
-      // Sign in to Supabase
-      const { error: signInError } = await supabase.auth.signInWithIdToken({
-        provider: 'google',
-        token: userInfo.idToken,
+      // Generate state parameter for security
+      const state = toHexString(await Crypto.getRandomBytesAsync(32));
+
+      // Create auth request
+      const authRequest = new AuthSession.AuthRequest({
+        clientId: config.clientId,
+        redirectUri: config.redirectUri,
+        scopes: config.scopes,
+        responseType: config.responseType,
+        state: state,
+        extraParams: {
+          nonce: toHexString(await Crypto.getRandomBytesAsync(32)),
+        },
       });
 
-      if (signInError) throw signInError;
+      // Start the auth session
+      const result = await authRequest.promptAsync({});
 
-      return {
-        success: true,
-        user: userInfo.user,
-        profile: existingUser,
-        requiresOnboarding: !existingUser,
-      };
-    } catch (error: any) {
-      console.error('Google sign-in error:', error);
+      if (result.type === 'success') {
+        // Get the ID token from the response
+        const { params } = result;
+        const idToken = params.id_token;
 
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        if (!idToken) {
+          throw new Error('No ID token received from Google');
+        }
+
+        // Decode the ID token to get user info (basic decode without verification)
+        const userInfo = this.decodeJWT(idToken);
+
+        // Check if user exists in Supabase
+        const { data: existingUser, error: userError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', userInfo.sub)
+          .single();
+
+        if (userError && userError.code !== 'PGRST116') {
+          throw userError;
+        }
+
+        // Sign in to Supabase with ID token
+        const { error: signInError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+
+        if (signInError) throw signInError;
+
+        return {
+          success: true,
+          user: {
+            id: userInfo.sub,
+            email: userInfo.email,
+            name: userInfo.name,
+            picture: userInfo.picture,
+          },
+          profile: existingUser,
+          requiresOnboarding: !existingUser,
+        };
+      } else {
         return {
           success: false,
           error: 'Google sign-in was cancelled',
         };
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        return {
-          success: false,
-          error: 'Google sign-in is already in progress',
-        };
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        return {
-          success: false,
-          error: 'Google Play Services not available',
-        };
       }
-
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
       return {
         success: false,
         error: error.message || 'Google sign-in failed',
       };
+    }
+  }
+
+  // Simple JWT decoder (for getting user info from ID token)
+  private decodeJWT(token: string): any {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT token');
+      }
+
+      const payload = parts[1];
+      const decoded = Buffer.from(payload, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch (error) {
+      console.error('Error decoding JWT:', error);
+      throw new Error('Failed to decode ID token');
     }
   }
 
@@ -317,7 +368,7 @@ class AuthService {
             },
           },
         },
-        (error, result) => {
+        (error: Error | undefined, result?: any) => {
           if (error) {
             reject(error);
           } else {
@@ -402,7 +453,7 @@ class AuthService {
             },
           },
         },
-        (error, result) => {
+        (error: Error | undefined, result?: any) => {
           if (error) {
             reject(error);
           } else {
@@ -447,11 +498,6 @@ class AuthService {
   async signOut(): Promise<void> {
     try {
       await supabase.auth.signOut();
-
-      if (Platform.OS === 'android') {
-        await GoogleSignin.signOut();
-      }
-
       await LoginManager.logOut();
     } catch (error) {
       console.error('Sign out error:', error);

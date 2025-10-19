@@ -71,48 +71,16 @@ class RealtimeService {
   private subscriptions: Map<string, RealtimeChannel> = new Map();
   private eventListeners: Map<string, ((event: RealtimeEvent) => void)[]> = new Map();
   private isConnected: boolean = false;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
-  private reconnectDelay: number = 1000;
 
   constructor() {
-    this.setupConnectionListeners();
+    this.initialize();
   }
 
-  // Initialize real-time connection
+  // Initialize real-time service
   async initialize() {
-    try {
-      console.log('🔄 Initializing real-time service...');
-
-      // Set up connection state listener
-      supabase.realtime.onOpen(() => {
-        console.log('✅ Real-time connection opened');
-        this.isConnected = true;
-        this.reconnectAttempts = 0;
-        this.reconnectSubscriptions();
-      });
-
-      supabase.realtime.onClose(() => {
-        console.log('❌ Real-time connection closed');
-        this.isConnected = false;
-        this.handleReconnect();
-      });
-
-      supabase.realtime.onError((error) => {
-        console.error('❌ Real-time connection error:', error);
-        this.isConnected = false;
-        this.handleReconnect();
-      });
-
-    } catch (error) {
-      console.error('Failed to initialize real-time service:', error);
-    }
-  }
-
-  // Set up connection listeners
-  private setupConnectionListeners() {
+    console.log('🔄 Initializing real-time service...');
     // Listen for auth state changes to manage subscriptions
-    const { unsubscribe } = useSessionStore.subscribe(
+    useSessionStore.subscribe(
       (state) => state.isAuthenticated,
       (isAuthenticated) => {
         if (isAuthenticated) {
@@ -122,31 +90,6 @@ class RealtimeService {
         }
       }
     );
-  }
-
-  // Handle automatic reconnection
-  private async handleReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('❌ Max reconnection attempts reached');
-      return;
-    }
-
-    this.reconnectAttempts++;
-    const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-
-    console.log(`🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts})`);
-
-    setTimeout(async () => {
-      try {
-        await this.initialize();
-        const user = useSessionStore.getState().user;
-        if (user) {
-          await this.initializeUserSubscriptions();
-        }
-      } catch (error) {
-        console.error('Reconnection failed:', error);
-      }
-    }, delay);
   }
 
   // Initialize user-specific subscriptions
@@ -206,7 +149,9 @@ class RealtimeService {
         }
       )
       .subscribe((status) => {
-        console.log('🔔 Notifications subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true;
+        }
       });
 
     this.subscriptions.set(channelName, channel);
@@ -250,7 +195,9 @@ class RealtimeService {
         }
       )
       .subscribe((status) => {
-        console.log('💬 Post engagement subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true;
+        }
       });
 
     this.subscriptions.set(channelName, channel);
@@ -306,7 +253,9 @@ class RealtimeService {
         }
       )
       .subscribe((status) => {
-        console.log('🏆 Competition subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true;
+        }
       });
 
     this.subscriptions.set(channelName, channel);
@@ -338,7 +287,9 @@ class RealtimeService {
         }
       )
       .subscribe((status) => {
-        console.log('👥 Follower subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true;
+        }
       });
 
     this.subscriptions.set(channelName, channel);
@@ -370,7 +321,9 @@ class RealtimeService {
         }
       )
       .subscribe((status) => {
-        console.log('📝 Post subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          this.isConnected = true;
+        }
       });
 
     this.subscriptions.set(channelName, channel);
@@ -538,16 +491,6 @@ class RealtimeService {
     this.eventListeners.clear();
   }
 
-  // Reconnect all subscriptions after reconnection
-  private async reconnectSubscriptions() {
-    console.log('🔄 Reconnecting subscriptions...');
-
-    const user = useSessionStore.getState().user;
-    if (user) {
-      await this.initializeUserSubscriptions();
-    }
-  }
-
   // Get connection status
   getConnectionStatus(): boolean {
     return this.isConnected;
@@ -562,7 +505,7 @@ class RealtimeService {
   getSubscriptionInfo(): Array<{ name: string; status: string }> {
     return Array.from(this.subscriptions.entries()).map(([name, channel]) => ({
       name,
-      status: channel.state || 'unknown',
+      status: channel.state,
     }));
   }
 }

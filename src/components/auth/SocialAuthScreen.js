@@ -22,7 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { authService } from '../../services/authService';
 import OnboardingFlow from './OnboardingFlow';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../utils/supabase';
 
 const SocialAuthScreen = ({ initialMode = 'signin' }) => {
   const navigation = useNavigation();
