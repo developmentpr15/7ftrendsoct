@@ -8,10 +8,10 @@ export type { User, UserPreferences } from './sessionStore';
 export { useFeedStore, useFeed, useFeedActions, useFeedFilters, useFeedPagination } from './feedStore';
 export type { Post, FeedAnalytics, PaginationState, FeedFilter } from './feedStore';
 
-export { useCompetitionStore, useCompetitions, useCurrentCompetition, useCompetitionActions, useCompetitionSubmission, useCompetitionVoting } from './competitionStore';
+export { useCompetitionStore, useCompetitions, useCurrentCompetition, useCompetitionActions, useCompetitionSubmission, useCompetitionVoting, useCompetitionLeaderboard } from './competitionStore';
 export type { Competition, CompetitionEntry, CompetitionVote, LeaderboardEntry, CompetitionFilter } from './competitionStore';
 
-export { useWardrobeStore, useWardrobe, useOutfits, useAR, useWardrobeActions, useOutfitActions, useARActions, useWardrobeFilters } from './wardrobeStore';
+export { useWardrobeStore, useWardrobe, useOutfits, useAR, useWardrobeActions, useOutfitActions, useARActions, useWardrobeFilters, useAITaggingActions } from './wardrobeStore';
 export type { WardrobeItem, Outfit, OutfitSuggestion, ARSession, WardrobeFilter, OutfitFilter } from './wardrobeStore';
 
 export { useRealtimeStore, useRealtime, useRealtimeNotifications, useRealtimeConnection, useRealtimeSubscriptions } from './realtimeStore';

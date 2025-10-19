@@ -6,8 +6,8 @@ import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middl
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { realtimeService, RealtimeEvent } from '../services/realtimeService';
 import { useSessionStore } from './sessionStore';
-import { useFeedStore } from './feedStore';
-import { useCompetitionStore } from './competitionStore';
+import type { useFeedStore } from './feedStore';
+import type { useCompetitionStore } from './competitionStore';
 
 // Real-time notification types
 export interface RealtimeNotification {

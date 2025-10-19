@@ -2,7 +2,7 @@
 // Manages Supabase Realtime subscriptions for live updates
 
 import { RealtimeChannel } from '@supabase/realtime-js';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabase';
 import { useSessionStore } from '../store/sessionStore';
 
 // Subscription event types

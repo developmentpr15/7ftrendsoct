@@ -15,17 +15,7 @@ import {
   Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import {
-  ChevronRight,
-  ChevronLeft,
-  Check,
-  X,
-  User,
-  Globe,
-  Heart,
-  Palette,
-  Settings,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { COUNTRIES, TIMEZONES, STYLE_PREFERENCES } from '../../services/authService';
 import { authService } from '../../services/authService';
@@ -71,11 +61,11 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
 
   const totalSteps = 5;
   const steps = [
-    { title: 'Welcome', icon: User },
-    { title: 'Country', icon: Globe },
-    { title: 'Profile', icon: User },
-    { title: 'Style', icon: Palette },
-    { title: 'Notifications', icon: Settings },
+    { title: 'Welcome', icon: 'person-outline' },
+    { title: 'Country', icon: 'globe-outline' },
+    { title: 'Profile', icon: 'person-outline' },
+    { title: 'Style', icon: 'color-palette-outline' },
+    { title: 'Notifications', icon: 'notifications-outline' },
   ];
 
   // Auto-select country based on phone locale
@@ -260,7 +250,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
     <View style={styles.stepContent}>
       <View style={styles.welcomeHeader}>
         <View style={styles.welcomeIcon}>
-          <Heart size={60} color="#FF6B6B" />
+          <Ionicons name="heart" size={60} color="#FF6B6B" />
         </View>
         <Text style={styles.welcomeTitle}>Welcome to 7Ftrends!</Text>
         <Text style={styles.welcomeSubtitle}>
@@ -271,7 +261,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
       <View style={styles.featuresContainer}>
         <View style={styles.feature}>
           <View style={styles.featureIcon}>
-            <User size={24} color="#4ECDC4" />
+            <Ionicons name="person-outline" size={24} color="#4ECDC4" />
           </View>
           <View>
             <Text style={styles.featureTitle}>Style Profile</Text>
@@ -283,7 +273,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
 
         <View style={styles.feature}>
           <View style={styles.featureIcon}>
-            <Globe size={24} color="#4ECDC4" />
+            <Ionicons name="globe-outline" size={24} color="#4ECDC4" />
           </View>
           <View>
             <Text style={styles.featureTitle}>Global Competitions</Text>
@@ -295,7 +285,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
 
         <View style={styles.feature}>
           <View style={styles.featureIcon}>
-            <Palette size={24} color="#4ECDC4" />
+            <Ionicons name="color-palette-outline" size={24} color="#4ECDC4" />
           </View>
           <View>
             <Text style={styles.featureTitle}>AI Recommendations</Text>
@@ -338,7 +328,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
                 {country.name}
               </Text>
               {selectedCountry?.code === country.code && (
-                <Check size={20} color="#4ECDC4" />
+                <Ionicons name="checkmark" size={20} color="#4ECDC4" />
               )}
             </TouchableOpacity>
           ))}
@@ -367,7 +357,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
                 {timezone.label}
               </Text>
               {selectedTimezone?.value === timezone.value && (
-                <Check size={20} color="#4ECDC4" />
+                <Ionicons name="checkmark" size={20} color="#4ECDC4" />
               )}
             </TouchableOpacity>
           ))}
@@ -682,19 +672,18 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
           />
         </View>
         <View style={styles.progressSteps}>
-          {steps.map((step, index) => {
-            const Icon = step.icon;
-            return (
-              <View key={index} style={styles.progressStep}>
-                <View style={[
-                  styles.stepIcon,
-                  index <= currentStep && styles.stepIconActive,
-                ]}>
-                  <Icon
-                    size={16}
-                    color={index <= currentStep ? '#4ECDC4' : '#999'}
-                  />
-                </View>
+          {steps.map((step, index) => (
+            <View key={index} style={styles.progressStep}>
+              <View style={[
+                styles.stepIcon,
+                index <= currentStep && styles.stepIconActive,
+              ]}>
+                <Ionicons
+                  name={step.icon}
+                  size={16}
+                  color={index <= currentStep ? '#4ECDC4' : '#999'}
+                />
+              </View>
                 <Text style={[
                   styles.stepLabel,
                   index <= currentStep && styles.stepLabelActive,
@@ -719,7 +708,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
           onPress={prevStep}
           disabled={currentStep === 0}
         >
-          <ChevronLeft size={20} color="#666" />
+          <Ionicons name="chevron-back" size={20} color="#666" />
           <Text style={styles.navButtonText}>Previous</Text>
         </TouchableOpacity>
 
@@ -735,7 +724,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
           <Text style={styles.navButtonPrimaryText}>
             {loading ? 'Completing...' : currentStep === totalSteps - 1 ? 'Complete' : 'Next'}
           </Text>
-          <ChevronRight size={20} color="#fff" />
+          <Ionicons name="chevron-forward" size={20} color="#fff" />
         </TouchableOpacity>
       </View>
     </SafeAreaView>

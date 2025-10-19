@@ -18,15 +18,7 @@ import {
   Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ChevronLeft,
-  Heart,
-  AlertCircle,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { authService } from '../../services/authService';
 import OnboardingFlow from './OnboardingFlow';
@@ -295,12 +287,12 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
               style={styles.backButton}
               onPress={() => navigation.goBack()}
             >
-              <ChevronLeft size={24} color="#666" />
+              <Ionicons name="chevron-back" size={24} color="#666" />
             </TouchableOpacity>
 
             <View style={styles.logoContainer}>
               <View style={styles.logo}>
-                <Heart size={40} color="#FF6B6B" />
+                <Ionicons name="heart" size={40} color="#FF6B6B" />
               </View>
               <Text style={styles.appName}>7Ftrends</Text>
               <Text style={styles.tagline}>Style Without Borders</Text>
@@ -322,7 +314,7 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
             {/* Email Input */}
             <View style={styles.inputGroup}>
               <View style={[styles.inputContainer, errors.email && styles.inputError]}>
-                <Mail size={20} color="#999" style={styles.inputIcon} />
+                <Ionicons name="mail-outline" size={20} color="#999" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={formData.email}
@@ -342,7 +334,7 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
             {/* Password Input */}
             <View style={styles.inputGroup}>
               <View style={[styles.inputContainer, errors.password && styles.inputError]}>
-                <Lock size={20} color="#999" style={styles.inputIcon} />
+                <Ionicons name="lock-closed" size={20} color="#999" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   value={formData.password}
@@ -356,9 +348,9 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff size={20} color="#999" />
+                    <Ionicons name="eye-off-outline" size={20} color="#999" />
                   ) : (
-                    <Eye size={20} color="#999" />
+                    <Ionicons name="eye-outline" size={20} color="#999" />
                   )}
                 </TouchableOpacity>
               </View>
@@ -371,7 +363,7 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
             {mode === 'signup' && (
               <View style={styles.inputGroup}>
                 <View style={[styles.inputContainer, errors.confirmPassword && styles.inputError]}>
-                  <Lock size={20} color="#999" style={styles.inputIcon} />
+                  <Ionicons name="lock-closed" size={20} color="#999" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     value={formData.confirmPassword}

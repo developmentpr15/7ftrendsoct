@@ -13,17 +13,7 @@ import {
   Share,
   Alert,
 } from 'react-native';
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Bookmark,
-  MoreHorizontal,
-  TrendingUp,
-  Users,
-  Award,
-  Clock,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Blurhash from 'react-native-blurhash';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -121,7 +111,7 @@ const OptimizedPostCard = memo(({
     if (post.feed_type === 'trending') {
       return (
         <View style={[styles.feedTypeIndicator, styles.trendingIndicator]}>
-          <TrendingUp size={12} color="#FF6B6B" />
+          <Ionicons name="trending-up" size={12} color="#FF6B6B" />
           <Text style={[styles.feedTypeText, styles.trendingText]}>Trending</Text>
         </View>
       );
@@ -129,7 +119,7 @@ const OptimizedPostCard = memo(({
     if (post.feed_type === 'mutual_friend') {
       return (
         <View style={[styles.feedTypeIndicator, styles.friendIndicator]}>
-          <Users size={12} color="#4ECDC4" />
+          <Ionicons name="people" size={12} color="#4ECDC4" />
           <Text style={[styles.feedTypeText, styles.friendText]}>Friend</Text>
         </View>
       );
@@ -137,7 +127,7 @@ const OptimizedPostCard = memo(({
     if (post.feed_type === 'competition') {
       return (
         <View style={[styles.feedTypeIndicator, styles.competitionIndicator]}>
-          <Award size={12} color="#FFD700" />
+          <Ionicons name="ribbon" size={12} color="#FFD700" />
           <Text style={[styles.feedTypeText, styles.competitionText]}>Competition</Text>
         </View>
       );
@@ -201,19 +191,19 @@ const OptimizedPostCard = memo(({
       <View style={styles.engagementBar}>
         {post.likes_count > 0 && (
           <View style={styles.engagementItem}>
-            <Heart size={12} color="#FF6B6B" fill="#FF6B6B" />
+            <Ionicons name="heart" size={12} color="#FF6B6B" />
             <Text style={styles.engagementText}>{post.likes_count}</Text>
           </View>
         )}
         {post.comments_count > 0 && (
           <View style={styles.engagementItem}>
-            <MessageCircle size={12} color="#666" />
+            <Ionicons name="chatbubble-outline" size={12} color="#666" />
             <Text style={styles.engagementText}>{post.comments_count}</Text>
           </View>
         )}
         {post.shares_count > 0 && (
           <View style={styles.engagementItem}>
-            <Share2 size={12} color="#666" />
+            <Ionicons name="share-outline" size={12} color="#666" />
             <Text style={styles.engagementText}>{post.shares_count}</Text>
           </View>
         )}
@@ -245,14 +235,14 @@ const OptimizedPostCard = memo(({
           <View style={styles.authorDetails}>
             <Text style={styles.username}>{post.author.username}</Text>
             <View style={styles.metadata}>
-              <Clock size={10} color="#999" />
+              <Ionicons name="time" size={10} color="#999" />
               <Text style={styles.timeAgo}>{timeAgo}</Text>
               {post.feed_type !== 'general' && renderFeedTypeIndicator()}
             </View>
           </View>
         </View>
         <TouchableOpacity style={styles.moreButton}>
-          <MoreHorizontal size={20} color="#666" />
+          <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
         </TouchableOpacity>
       </View>
 
@@ -273,26 +263,26 @@ const OptimizedPostCard = memo(({
       <View style={styles.actions}>
         <Animated.View style={[styles.actionButton, { transform: [{ scale: likeAnimation }] }]}>
           <TouchableOpacity onPress={handleLike} style={styles.likeButton}>
-            <Heart
+            <Ionicons
+              name="heart"
               size={20}
               color={post.is_liked ? '#FF6B6B' : '#666'}
-              fill={post.is_liked ? '#FF6B6B' : 'none'}
             />
           </TouchableOpacity>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleComment} style={styles.actionButton}>
-          <MessageCircle size={20} color="#666" />
+          <Ionicons name="chatbubble-outline" size={20} color="#666" />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={handleShare} style={styles.actionButton}>
-          <Share2 size={20} color="#666" />
+          <Ionicons name="share-outline" size={20} color="#666" />
         </TouchableOpacity>
 
         <View style={styles.flexSpacer} />
 
         <TouchableOpacity onPress={handleSave} style={styles.actionButton}>
-          <Bookmark size={20} color="#666" />
+          <Ionicons name="bookmark-outline" size={20} color="#666" />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>

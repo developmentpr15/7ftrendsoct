@@ -17,17 +17,10 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import {
-  Filter,
-  TrendingUp,
-  Users,
-  Award,
-  ChevronDown,
-  X,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import OptimizedPostCard from '../../components/feed/OptimizedPostCard';
-import { useFeed, useFeedActions, useFeedFilters } from '../../store/feed';
+import { useFeed, useFeedActions, useFeedFilters } from '../../store/feedStore';
 import { useAuth } from '../../store/sessionStore';
 import { useRealtimeConnection, useRealtimeSubscriptions } from '../../store/realtimeStore';
 import RealtimeNotifications from '../../components/ui/RealtimeNotifications';
@@ -54,11 +47,11 @@ const OptimizedFeedScreen = ({ navigation }) => {
 
   // Filter options
   const filterOptions = useMemo(() => [
-    { key: 'all', label: 'All Posts', icon: Filter },
-    { key: 'friends', label: 'Friends', icon: Users },
-    { key: 'trending', label: 'Trending', icon: TrendingUp },
-    { key: 'competitions', label: 'Competitions', icon: Award },
-  ]), []);
+    { key: 'all', label: 'All Posts', icon: 'funnel' },
+    { key: 'friends', label: 'Friends', icon: 'people' },
+    { key: 'trending', label: 'Trending', icon: 'trending-up' },
+    { key: 'competitions', label: 'Competitions', icon: 'ribbon' },
+  ], []);
 
   // Get current filter display
   const currentFilter = useMemo(() => {
@@ -171,9 +164,9 @@ const OptimizedFeedScreen = ({ navigation }) => {
           style={styles.filterButton}
           onPress={() => setIsFilterMenuOpen(true)}
         >
-          <currentFilter.icon size={16} color="#4ECDC4" />
+          <Ionicons name={currentFilter.icon} size={16} color="#4ECDC4" />
           <Text style={styles.filterText}>{currentFilter.label}</Text>
-          <ChevronDown size={16} color="#666" />
+          <Ionicons name="chevron-down" size={16} color="#666" />
         </TouchableOpacity>
       </View>
 
@@ -189,7 +182,7 @@ const OptimizedFeedScreen = ({ navigation }) => {
             <View style={styles.filterMenuHeader}>
               <Text style={styles.filterMenuTitle}>Filter Feed</Text>
               <TouchableOpacity onPress={() => setIsFilterMenuOpen(false)}>
-                <X size={20} color="#666" />
+                <Ionicons name="close" size={20} color="#666" />
               </TouchableOpacity>
             </View>
             {filterOptions.map((option) => (
@@ -201,7 +194,8 @@ const OptimizedFeedScreen = ({ navigation }) => {
                 ]}
                 onPress={() => handleFilterChange(option.key)}
               >
-                <option.icon
+                <Ionicons
+                  name={option.icon}
                   size={16}
                   color={filters.feedType === option.key ? '#4ECDC4' : '#666'}
                 />

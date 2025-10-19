@@ -6,7 +6,7 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import { AccessToken, GraphRequest, GraphRequestManager, LoginManager } from 'react-native-fbsdk';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../utils/supabase';
 import { Platform, Alert } from 'react-native';
 
 // Social auth result types

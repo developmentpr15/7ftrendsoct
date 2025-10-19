@@ -10,15 +10,7 @@ import {
   TouchableOpacity,
   StatusBar,
 } from 'react-native';
-import {
-  Wifi,
-  WifiOff,
-  RefreshCw,
-  AlertCircle,
-  Check,
-  Bell,
-  BellOff,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useRealtimeConnection } from '../../store/realtimeStore';
 
@@ -82,7 +74,7 @@ const RealtimeConnectionStatus = () => {
   const getStatusConfig = () => {
     if (isConnecting) {
       return {
-        icon: RefreshCw,
+        icon: 'refresh',
         color: '#F59E0B',
         backgroundColor: '#FEF3C7',
         title: 'Connecting to Real-time',
@@ -93,7 +85,7 @@ const RealtimeConnectionStatus = () => {
 
     if (error) {
       return {
-        icon: WifiOff,
+        icon: 'wifi-off',
         color: '#EF4444',
         backgroundColor: '#FEE2E2',
         title: 'Real-time Connection Error',
@@ -104,7 +96,7 @@ const RealtimeConnectionStatus = () => {
 
     if (isConnected) {
       return {
-        icon: Bell,
+        icon: 'notifications',
         color: '#10B981',
         backgroundColor: '#D1FAE5',
         title: 'Real-time Active',
@@ -114,7 +106,7 @@ const RealtimeConnectionStatus = () => {
     }
 
     return {
-      icon: BellOff,
+      icon: 'notifications-off',
       color: '#6B7280',
       backgroundColor: '#F3F4F6',
       title: 'Real-time Offline',
@@ -124,7 +116,6 @@ const RealtimeConnectionStatus = () => {
   };
 
   const config = getStatusConfig();
-  const Icon = config.icon;
 
   if (!showStatus) return null;
 
@@ -146,7 +137,8 @@ const RealtimeConnectionStatus = () => {
       <View style={styles.content}>
         {/* Status Icon */}
         <View style={[styles.iconContainer, { backgroundColor: config.color }]}>
-          <Icon
+          <Ionicons
+            name={config.icon}
             size={16}
             color="#fff"
             style={config.showSpinner && styles.spinning}
@@ -168,7 +160,7 @@ const RealtimeConnectionStatus = () => {
               style={[styles.retryButton, { backgroundColor: config.color }]}
               onPress={handleReconnect}
             >
-              <RefreshCw size={16} color="#fff" />
+              <Ionicons name="refresh" size={16} color="#fff" />
             </TouchableOpacity>
           )}
 
@@ -177,7 +169,7 @@ const RealtimeConnectionStatus = () => {
               style={styles.dismissButton}
               onPress={animateOut}
             >
-              <AlertCircle size={16} color="#666" />
+              <Ionicons name="alert-circle" size={16} color="#666" />
             </TouchableOpacity>
           )}
         </View>

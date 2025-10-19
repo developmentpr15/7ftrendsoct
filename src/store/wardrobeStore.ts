@@ -3,6 +3,7 @@ import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middl
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { useSessionStore } from './sessionStore';
+import { visionService, WardrobeAIFields } from '../services/visionService';
 
 // Types
 export interface WardrobeItem {
@@ -43,6 +44,18 @@ export interface WardrobeItem {
     storage_location?: string;
     insurance_info?: any;
   };
+  // AI-generated fields
+  ai_tags: string[];
+  ai_category: string | null;
+  ai_colors: string[];
+  ai_occasions: string[];
+  ai_seasons: string[];
+  ai_style: string | null;
+  ai_materials: string[];
+  ai_confidence: number | null;
+  ai_processed_at: string | null;
+  ai_status: 'pending' | 'processing' | 'completed' | 'failed';
+  ai_error_message: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -191,6 +204,15 @@ interface WardrobeStore {
   updateWardrobeItem: (itemId: string, updates: Partial<WardrobeItem>) => Promise<{ success: boolean; error?: string }>;
   deleteWardrobeItem: (itemId: string) => Promise<{ success: boolean; error?: string }>;
   uploadItemImage: (itemId: string, imageUri: string) => Promise<{ success: boolean; url?: string; error?: string }>;
+
+  // AI Tagging Actions
+  triggerAITagging: (itemId: string, imageUrl: string) => Promise<{ success: boolean; error?: string }>;
+  getAITaggingStatus: (itemId: string) => Promise<any>;
+  getWardrobeAIFields: (itemId: string) => Promise<WardrobeAIFields | null>;
+  mergeAITags: (itemId: string, manualOverride?: boolean) => Promise<{ success: boolean; mergedData?: any; error?: string }>;
+  retryAITagging: (itemId: string) => Promise<{ success: boolean; error?: string }>;
+  batchAITagging: (itemIds: string[]) => Promise<{ success: boolean; results?: any[]; error?: string }>;
+  monitorAITaggingProgress: (itemId: string, onUpdate: (status: any) => void) => void;
 
   // Outfit Actions
   fetchOutfits: (refresh?: boolean) => Promise<void>;
@@ -367,6 +389,18 @@ export const useWardrobeStore = create<WardrobeStore>()(
                 quality_score: itemData.quality_score || 5,
                 sustainability_score: itemData.sustainability_score,
                 metadata: itemData.metadata || {},
+                // AI fields
+                ai_tags: itemData.ai_tags || [],
+                ai_category: itemData.ai_category || null,
+                ai_colors: itemData.ai_colors || [],
+                ai_occasions: itemData.ai_occasions || [],
+                ai_seasons: itemData.ai_seasons || [],
+                ai_style: itemData.ai_style || null,
+                ai_materials: itemData.ai_materials || [],
+                ai_confidence: itemData.ai_confidence || null,
+                ai_processed_at: itemData.ai_processed_at || null,
+                ai_status: itemData.ai_status || 'pending',
+                ai_error_message: itemData.ai_error_message || null,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               })
@@ -496,11 +530,149 @@ export const useWardrobeStore = create<WardrobeStore>()(
               return updateResult;
             }
 
+            // Trigger AI tagging for the new image
+            try {
+              await visionService.processImageUpload(itemId, publicUrl, true);
+            } catch (aiError) {
+              console.warn('AI tagging failed:', aiError);
+              // Don't fail the upload if AI tagging fails
+            }
+
             return { success: true, url: publicUrl };
 
           } catch (error: any) {
             return { success: false, error: error.message };
           }
+        },
+
+        // AI Tagging Actions
+        triggerAITagging: async (itemId: string, imageUrl: string) => {
+          try {
+            const result = await visionService.triggerAITagging(itemId, imageUrl);
+
+            // Update local state with processing status
+            if (result.success) {
+              set({
+                wardrobeItems: get().wardrobeItems.map(item =>
+                  item.id === itemId
+                    ? { ...item, ai_status: 'processing', ai_processed_at: new Date().toISOString() }
+                    : item
+                ),
+              });
+            }
+
+            return result;
+          } catch (error: any) {
+            return { success: false, error: error.message };
+          }
+        },
+
+        getAITaggingStatus: async (itemId: string) => {
+          try {
+            return await visionService.getAITaggingStatus(itemId);
+          } catch (error: any) {
+            console.error('Get AI tagging status error:', error);
+            return null;
+          }
+        },
+
+        getWardrobeAIFields: async (itemId: string) => {
+          try {
+            return await visionService.getWardrobeAIFields(itemId);
+          } catch (error: any) {
+            console.error('Get AI fields error:', error);
+            return null;
+          }
+        },
+
+        mergeAITags: async (itemId: string, manualOverride: boolean = false) => {
+          try {
+            const result = await visionService.mergeAITags(itemId, manualOverride);
+
+            if (result.success && manualOverride) {
+              // Refresh the item to get merged data
+              await get().fetchWardrobeItems(true);
+            }
+
+            return result;
+          } catch (error: any) {
+            return { success: false, error: error.message };
+          }
+        },
+
+        retryAITagging: async (itemId: string) => {
+          try {
+            const result = await visionService.retryAITagging(itemId);
+
+            if (result.success) {
+              // Update local state with processing status
+              set({
+                wardrobeItems: get().wardrobeItems.map(item =>
+                  item.id === itemId
+                    ? { ...item, ai_status: 'processing', ai_error_message: null }
+                    : item
+                ),
+              });
+            }
+
+            return result;
+          } catch (error: any) {
+            return { success: false, error: error.message };
+          }
+        },
+
+        batchAITagging: async (itemIds: string[]) => {
+          try {
+            const result = await visionService.batchAITagging(itemIds);
+
+            // Update local status for all items
+            if (result.success && result.results) {
+              result.results.forEach((itemResult: any) => {
+                if (itemResult.success) {
+                  set({
+                    wardrobeItems: get().wardrobeItems.map(item =>
+                      item.id === itemResult.itemId
+                        ? { ...item, ai_status: 'processing' }
+                        : item
+                    ),
+                  });
+                }
+              });
+            }
+
+            return result;
+          } catch (error: any) {
+            return { success: false, error: error.message };
+          }
+        },
+
+        monitorAITaggingProgress: (itemId: string, onUpdate: (status: any) => void) => {
+          visionService.monitorAITaggingProgress(itemId, (status) => {
+            // Update local state when status changes
+            if (status.status === 'completed' || status.status === 'failed') {
+              set({
+                wardrobeItems: get().wardrobeItems.map(item =>
+                  item.id === itemId
+                    ? {
+                        ...item,
+                        ai_status: status.status,
+                        ai_confidence: status.confidence,
+                        ai_error_message: status.error || null,
+                        ai_processed_at: status.processedAt || new Date().toISOString()
+                      }
+                    : item
+                ),
+              });
+
+              // Refresh items to get AI data when completed
+              if (status.status === 'completed') {
+                setTimeout(() => get().fetchWardrobeItems(true), 1000);
+              }
+            }
+
+            // Call the update callback
+            onUpdate(status);
+          });
         },
 
         // Outfit Actions
@@ -1125,7 +1297,7 @@ export const useWardrobe = () => ({
 export const useOutfits = () => ({
   outfits: useWardrobeStore((state) => state.outfits),
   loading: useWardrobeStore((state) => state.loading),
-  saving: useWardrobeStore((state) => state.saving)),
+  saving: useWardrobeStore((state) => state.saving),
   filter: useWardrobeStore((state) => state.outfitFilter),
 });
 
@@ -1140,6 +1312,16 @@ export const useWardrobeActions = () => ({
   updateItem: useWardrobeStore((state) => state.updateWardrobeItem),
   deleteItem: useWardrobeStore((state) => state.deleteWardrobeItem),
   uploadImage: useWardrobeStore((state) => state.uploadItemImage),
+});
+
+export const useAITaggingActions = () => ({
+  triggerAITagging: useWardrobeStore((state) => state.triggerAITagging),
+  getAITaggingStatus: useWardrobeStore((state) => state.getAITaggingStatus),
+  getWardrobeAIFields: useWardrobeStore((state) => state.getWardrobeAIFields),
+  mergeAITags: useWardrobeStore((state) => state.mergeAITags),
+  retryAITagging: useWardrobeStore((state) => state.retryAITagging),
+  batchAITagging: useWardrobeStore((state) => state.batchAITagging),
+  monitorAITaggingProgress: useWardrobeStore((state) => state.monitorAITaggingProgress),
 });
 
 export const useOutfitActions = () => ({

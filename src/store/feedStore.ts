@@ -638,7 +638,7 @@ export const useFeedStore = create<FeedStore>()(
           });
         },
 
-        addToOfflineQueue: (action: string, data: any) => {
+        addToOfflineQueue: async (action: string, data: any) => {
           try {
             const existingActions = await AsyncStorage.getItem('offline-actions');
             const actions = existingActions ? JSON.parse(existingActions) : [];

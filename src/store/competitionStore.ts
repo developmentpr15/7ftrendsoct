@@ -3,6 +3,7 @@ import { persist, createJSONStorage, subscribeWithSelector } from 'zustand/middl
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../utils/supabase';
 import { useSessionStore } from './sessionStore';
+import { competitionVotingService } from '../services/competitionVotingService';
 
 // Types
 export interface Competition {
@@ -166,10 +167,16 @@ interface CompetitionStore {
   fetchUserEntries: (competitionId?: string) => Promise<void>;
   fetchEntries: (competitionId: string, page?: number) => Promise<void>;
 
-  // Voting Actions
-  voteForEntry: (entryId: string, score: number, criteriaScores?: any) => Promise<{ success: boolean; error?: string }>;
+  // Voting Actions (Simplified heart-based voting)
+  voteForEntry: (entryId: string, voterCountry?: string) => Promise<{ success: boolean; action?: string; votes_count?: number; error?: string }>;
+  removeVote: (entryId: string) => Promise<{ success: boolean; error?: string }>;
   fetchUserVotes: (competitionId: string) => Promise<void>;
-  fetchLeaderboard: (competitionId: string) => Promise<void>;
+  fetchLeaderboard: (competitionId: string, countryFilter?: string) => Promise<void>;
+  getVoteCount: (entryId: string) => Promise<number>;
+  hasVotedForEntry: (entryId: string) => Promise<boolean>;
+  checkVotingOpen: (competitionId: string) => Promise<boolean>;
+  getVotingStatistics: (competitionId: string) => Promise<any>;
+  determineWinners: (competitionId: string) => Promise<any[]>;
 
   // Filter and Search
   setFilters: (filters: Partial<CompetitionFilter>) => void;
@@ -554,56 +561,65 @@ export const useCompetitionStore = create<CompetitionStore>()(
           }
         },
 
-        // Voting Actions
-        voteForEntry: async (entryId: string, score: number, criteriaScores?: any) => {
-          const user = useSessionStore.getState().user;
-
-          if (!user) {
-            return { success: false, error: 'Not authenticated' };
-          }
-
-          if (score < 1 || score > 10) {
-            return { success: false, error: 'Score must be between 1 and 10' };
-          }
-
+        // Voting Actions (Simplified heart-based voting)
+        voteForEntry: async (entryId: string, voterCountry?: string) => {
           try {
             set({ voting: true });
 
-            // Check if already voted
-            const existingVote = get().userVotes.get(entryId);
-            if (existingVote) {
-              return { success: false, error: 'Already voted for this entry' };
+            const result = await competitionVotingService.voteForEntry(entryId, voterCountry);
+
+            if (result.success) {
+              // Update local votes
+              const newVotes = new Map(get().userVotes);
+              if (result.action === 'vote_removed') {
+                newVotes.delete(entryId);
+              } else {
+                newVotes.set(entryId, {
+                  id: entryId, // Use entryId as temporary ID
+                  entry_id: entryId,
+                  voter_id: useSessionStore.getState().user?.id,
+                  vote_type: 'public',
+                  created_at: new Date().toISOString(),
+                });
+              }
+              set({ userVotes: newVotes });
+
+              // Refresh entries to update vote counts
+              const entry = get().userEntries.find(e => e.id === entryId);
+              if (entry) {
+                await get().fetchUserEntries(entry.competition_id);
+              }
             }
 
-            const { data, error } = await supabase
-              .from('votes')
-              .insert({
-                entry_id: entryId,
-                voter_id: user.id,
-                score,
-                vote_type: 'public',
-                criteria_scores: criteriaScores || {},
-                is_anonymous: false,
-              })
-              .select()
-              .single();
+            return result;
 
-            if (error) {
-              return { success: false, error: error.message };
+          } catch (error: any) {
+            return { success: false, error: error.message };
+          } finally {
+            set({ voting: false });
+          }
+        },
+
+        removeVote: async (entryId: string) => {
+          try {
+            set({ voting: true });
+
+            const result = await competitionVotingService.removeVote(entryId);
+
+            if (result.success) {
+              // Update local votes
+              const newVotes = new Map(get().userVotes);
+              newVotes.delete(entryId);
+              set({ userVotes: newVotes });
+
+              // Refresh entries to update vote counts
+              const entry = get().userEntries.find(e => e.id === entryId);
+              if (entry) {
+                await get().fetchUserEntries(entry.competition_id);
+              }
             }
 
-            // Update local votes
-            const newVotes = new Map(get().userVotes);
-            newVotes.set(entryId, data);
-            set({ userVotes: newVotes });
-
-            // Refresh entries to update vote counts
-            const entry = get().userEntries.find(e => e.id === entryId);
-            if (entry) {
-              await get().fetchUserEntries(entry.competition_id);
-            }
-
-            return { success: true };
+            return result;
 
           } catch (error: any) {
             return { success: false, error: error.message };
@@ -613,30 +629,20 @@ export const useCompetitionStore = create<CompetitionStore>()(
         },
 
         fetchUserVotes: async (competitionId: string) => {
-          const user = useSessionStore.getState().user;
-
-          if (!user) return;
-
           try {
-            const { data, error } = await supabase
-              .from('votes')
-              .select(`
-                *,
-                competition_entry:entries!votes_entry_id_fkey(
-                  id,
-                  title,
-                  competition_id,
-                  participant:users!entries_participant_id_fkey(username)
-                )
-              `)
-              .eq('voter_id', user.id)
-              .in('competition_entry.competition_id', [competitionId]);
-
-            if (error) throw error;
+            const votingStatus = await competitionVotingService.getUserVotingStatus(competitionId);
 
             const votesMap = new Map();
-            (data || []).forEach((vote: CompetitionVote) => {
-              votesMap.set(vote.entry_id, vote);
+            votingStatus.forEach((status) => {
+              if (status.has_voted) {
+                votesMap.set(status.entry_id, {
+                  id: status.entry_id,
+                  entry_id: status.entry_id,
+                  voter_id: useSessionStore.getState().user?.id,
+                  vote_type: 'public',
+                  created_at: status.voted_at,
+                });
+              }
             });
 
             set({ userVotes: votesMap });
@@ -646,30 +652,80 @@ export const useCompetitionStore = create<CompetitionStore>()(
           }
         },
 
-        fetchLeaderboard: async (competitionId: string) => {
+        fetchLeaderboard: async (competitionId: string, countryFilter?: string) => {
           try {
             set({ loading: true });
 
-            // This would typically call a database function to get the leaderboard
-            const { data, error } = await supabase
-              .from('competition_leaderboards')
-              .select(`
-                *,
-                user:users(id, username, avatar_url, full_name),
-                competition_entry:competition_entries(id, title, images, participant_id)
-              `)
-              .eq('competition_id', competitionId)
-              .order('placement', { ascending: true });
+            const leaderboardData = await competitionVotingService.getLeaderboard(
+              competitionId,
+              countryFilter,
+              50
+            );
 
-            if (error) throw error;
-
-            set({ leaderboard: data || [] });
+            set({ leaderboard: leaderboardData });
 
           } catch (error: any) {
             console.error('Fetch leaderboard error:', error);
             set({ error: error.message });
           } finally {
             set({ loading: false });
+          }
+        },
+
+        getVoteCount: async (entryId: string) => {
+          try {
+            return await competitionVotingService.getEntryVoteCount(entryId);
+          } catch (error: any) {
+            console.error('Get vote count error:', error);
+            return 0;
+          }
+        },
+
+        hasVotedForEntry: async (entryId: string) => {
+          try {
+            return await competitionVotingService.hasUserVotedForEntry(entryId);
+          } catch (error: any) {
+            console.error('Check voted error:', error);
+            return false;
+          }
+        },
+
+        checkVotingOpen: async (competitionId: string) => {
+          try {
+            return await competitionVotingService.isVotingOpen(competitionId);
+          } catch (error: any) {
+            console.error('Check voting open error:', error);
+            return false;
+          }
+        },
+
+        getVotingStatistics: async (competitionId: string) => {
+          try {
+            return await competitionVotingService.getVotingStatistics(competitionId);
+          } catch (error: any) {
+            console.error('Get voting statistics error:', error);
+            return {
+              total_votes: 0,
+              unique_voters: 0,
+              votes_by_country: {},
+              voting_period_active: false,
+            };
+          }
+        },
+
+        determineWinners: async (competitionId: string) => {
+          try {
+            const winners = await competitionVotingService.determineWinners(competitionId);
+
+            // Update leaderboard with winners
+            if (winners.length > 0) {
+              await get().fetchLeaderboard(competitionId);
+            }
+
+            return winners;
+          } catch (error: any) {
+            console.error('Determine winners error:', error);
+            return [];
           }
         },
 
@@ -796,7 +852,10 @@ export const useCompetitionActions = () => ({
   joinCompetition: useCompetitionStore((state) => state.joinCompetition),
   submitEntry: useCompetitionStore((state) => state.submitEntry),
   voteForEntry: useCompetitionStore((state) => state.voteForEntry),
+  removeVote: useCompetitionStore((state) => state.removeVote),
   fetchLeaderboard: useCompetitionStore((state) => state.fetchLeaderboard),
+  fetchUserVotes: useCompetitionStore((state) => state.fetchUserVotes),
+  determineWinners: useCompetitionStore((state) => state.determineWinners),
 });
 
 export const useCompetitionSubmission = () => ({
@@ -809,4 +868,14 @@ export const useCompetitionVoting = () => ({
   voting: useCompetitionStore((state) => state.voting),
   userVotes: useCompetitionStore((state) => state.userVotes),
   fetchUserVotes: useCompetitionStore((state) => state.fetchUserVotes),
+  getVoteCount: useCompetitionStore((state) => state.getVoteCount),
+  hasVotedForEntry: useCompetitionStore((state) => state.hasVotedForEntry),
+  checkVotingOpen: useCompetitionStore((state) => state.checkVotingOpen),
+  getVotingStatistics: useCompetitionStore((state) => state.getVotingStatistics),
+});
+
+export const useCompetitionLeaderboard = () => ({
+  leaderboard: useCompetitionStore((state) => state.leaderboard),
+  loading: useCompetitionStore((state) => state.loading),
+  fetchLeaderboard: useCompetitionStore((state) => state.fetchLeaderboard),
 });

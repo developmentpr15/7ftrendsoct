@@ -13,16 +13,7 @@ import {
   PanResponder,
   Platform,
 } from 'react-native';
-import {
-  X,
-  Bell,
-  Heart,
-  MessageCircle,
-  UserPlus,
-  Trophy,
-  Info,
-  ChevronRight,
-} from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useRealtimeNotifications } from '../../store/realtimeStore';
 
@@ -34,43 +25,43 @@ const SWIPE_THRESHOLD = NOTIFICATION_WIDTH * 0.3;
 // Notification types configuration
 const NOTIFICATION_CONFIGS = {
   like: {
-    icon: Heart,
+    icon: 'heart',
     color: '#FF6B6B',
     bgColor: '#fff0f0',
     title: 'New Like',
   },
   comment: {
-    icon: MessageCircle,
+    icon: 'chatbubble-outline',
     color: '#4ECDC4',
     bgColor: '#f0fdf4',
     title: 'New Comment',
   },
   follow: {
-    icon: UserPlus,
+    icon: 'person-add',
     color: '#8B5CF6',
     bgColor: '#f3f0ff',
     title: 'New Follower',
   },
   competition_update: {
-    icon: Trophy,
+    icon: 'trophy',
     color: '#FFD700',
     bgColor: '#fffbeb',
     title: 'Competition Update',
   },
   competition_winner: {
-    icon: Trophy,
+    icon: 'trophy',
     color: '#FFD700',
     bgColor: '#fffbeb',
     title: 'Competition Winner',
   },
   new_follower: {
-    icon: Bell,
+    icon: 'notifications',
     color: '#6B7280',
     bgColor: '#f9fafb',
     title: 'New Follower',
   },
   default: {
-    icon: Info,
+    icon: 'information-circle',
     color: '#6B7280',
     bgColor: '#f9fafb',
     title: 'Notification',
@@ -212,7 +203,6 @@ const RealtimeNotifications = () => {
   // Render individual notification
   const renderNotification = useCallback((notification, index) => {
     const config = getNotificationConfig(notification.type);
-    const Icon = config.icon;
     const animatedValue = animatedValues.get(notification.id);
     const swipeValue = swipeAnimatedValues.get(notification.id);
     const panResponder = createPanResponder(notification.id);
@@ -240,7 +230,7 @@ const RealtimeNotifications = () => {
         <View style={[styles.notification, { backgroundColor: config.bgColor }]}>
           {/* Icon */}
           <View style={[styles.notificationIcon, { backgroundColor: config.color }]}>
-            <Icon size={16} color="#fff" />
+            <Ionicons name={config.icon} size={16} color="#fff" />
           </View>
 
           {/* Content */}
@@ -262,13 +252,13 @@ const RealtimeNotifications = () => {
               style={styles.notificationButton}
               onPress={() => dismissNotification(notification.id)}
             >
-              <X size={16} color="#666" />
+              <Ionicons name="close" size={16} color="#666" />
             </TouchableOpacity>
           </View>
 
           {/* Swipe indicator */}
           <View style={styles.swipeIndicator}>
-            <ChevronRight size={20} color="#ccc" />
+            <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </View>
         </View>
       </Animated.View>
@@ -282,7 +272,7 @@ const RealtimeNotifications = () => {
     return (
       <TouchableOpacity style={styles.notificationCenterButton}>
         <View style={styles.notificationCenterContent}>
-          <Bell size={20} color="#fff" />
+          <Ionicons name="notifications" size={20} color="#fff" />
           <View style={styles.badge}>
             <Text style={styles.badgeText}>
               {unreadCount > 99 ? '99+' : unreadCount}

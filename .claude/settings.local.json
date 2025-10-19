@@ -33,7 +33,8 @@
       "Bash(npx supabase status:*)",
       "Bash(npx supabase link:*)",
       "Bash(npx expo install:*)",
-      "Bash(npx supabase db push:*)"
+      "Bash(npx supabase db push:*)",
+      "Bash(npx react-native start:*)"
     ],
     "deny": [],
     "ask": []
