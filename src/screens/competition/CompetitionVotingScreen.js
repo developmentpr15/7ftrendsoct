@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   winnerName: {
-    fontSize: FONONTS.sizes.lg,
+    fontSize: FONTS,
     fontWeight: '700',
     color: COLORS.text,
     marginBottom: SIZES.xs,

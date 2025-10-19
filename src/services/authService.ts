@@ -3,7 +3,6 @@
 
 import * as AuthSession from 'expo-auth-session';
 import * as Crypto from 'expo-crypto';
-import { AccessToken, GraphRequest, GraphRequestManager, LoginManager } from 'react-native-fbsdk';
 import { supabase } from '../utils/supabase';
 import { Platform, Alert } from 'react-native';
 
@@ -13,8 +12,6 @@ function toHexString(bytes: Uint8Array): string {
 
 // Social auth result types
 export interface SocialAuthResult {
-// ... (rest of the file is unchanged)
-
   success: boolean;
   user?: any;
   profile?: any;
@@ -302,50 +299,61 @@ class AuthService {
   // Facebook Sign-In
   async signInWithFacebook(): Promise<SocialAuthResult> {
     try {
-      // Attempt login with limited permissions
-      const result = await LoginManager.logInWithPermissions(['public_profile', 'email']);
-
-      if (result.isCancelled) {
-        return {
-          success: false,
-          error: 'Facebook sign-in was cancelled',
-        };
-      }
-
-      // Get access token
-      const data = await AccessToken.getCurrentAccessToken();
-
-      if (!data) {
-        return {
-          success: false,
-          error: 'Failed to get access token',
-        };
-      }
-
-      // Get user profile from Facebook Graph API
-      const profile = await this.getFacebookProfile(data.accessToken);
-
-      // Sign in to Supabase with access token
-      const { error: signInError } = await supabase.auth.signInWithIdToken({
-        provider: 'facebook',
-        token: data.accessToken.toString(),
+      const redirectUri = AuthSession.makeRedirectUri({
+        scheme: undefined, // Use default scheme
+        path: 'auth',
+        preferLocalhost: true,
       });
 
-      if (signInError) throw signInError;
+      const authUrl =
+        `https://www.facebook.com/v13.0/dialog/oauth?client_id=${process.env.EXPO_PUBLIC_FACEBOOK_APP_ID}` +
+        `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+        `&scope=email,public_profile` +
+        `&response_type=token`;
 
-      // Check if user exists in profiles table
-      const { data: existingUser, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', profile.id)
-        .single();
+      const result = await AuthSession.startAsync({ authUrl });
 
-      return {
-        success: true,
-        user: profile,
-        profile: existingUser,
-        requiresOnboarding: !existingUser,
-      };
+      if (result.type === 'success' && result.params.access_token) {
+        const accessToken = result.params.access_token;
+
+        // Sign in to Supabase with access token
+        const { error: signInError } = await supabase.auth.signInWithIdToken({
+          provider: 'facebook',
+          token: accessToken,
+        });
+
+        if (signInError) throw signInError;
+
+        // Get user profile from Supabase
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          throw new Error('Could not get user from Supabase.');
+        }
+
+        // Check if user exists in profiles table
+        const { data: existingUser, error: userError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (userError && userError.code !== 'PGRST116') {
+          throw userError;
+        }
+
+        return {
+          success: true,
+          user: user,
+          profile: existingUser,
+          requiresOnboarding: !existingUser,
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Facebook sign-in was cancelled or failed',
+        };
+      }
     } catch (error: any) {
       console.error('Facebook sign-in error:', error);
       return {
@@ -355,116 +363,16 @@ class AuthService {
     }
   }
 
-  // Get Facebook user profile
-  private getFacebookProfile(accessToken: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const request = new GraphRequest(
-        '/me',
-        {
-          accessToken,
-          parameters: {
-            fields: {
-              string: 'id,name,email,picture.type(large)',
-            },
-          },
-        },
-        (error: Error | undefined, result?: any) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      );
-
-      new GraphRequestManager().addRequest(request).start();
-    });
-  }
-
-  // Instagram Sign-In (using Facebook Login)
+  // TODO: Implement Instagram Sign-In using a method compatible with Expo's managed workflow.
+  // This may require using a different OAuth flow or a web-based authentication approach.
   async signInWithInstagram(): Promise<SocialAuthResult> {
-    try {
-      // Instagram requires Facebook Login
-      const result = await LoginManager.logInWithPermissions([
-        'public_profile',
-        'email',
-        'instagram_basic',
-      ]);
-
-      if (result.isCancelled) {
-        return {
-          success: false,
-          error: 'Instagram sign-in was cancelled',
-        };
-      }
-
-      const data = await AccessToken.getCurrentAccessToken();
-
-      if (!data) {
-        return {
-          success: false,
-          error: 'Failed to get access token',
-        };
-      }
-
-      // Get Instagram profile
-      const profile = await this.getInstagramProfile(data.accessToken.toString());
-
-      // Sign in to Supabase
-      const { error: signInError } = await supabase.auth.signInWithIdToken({
-        provider: 'facebook', // Instagram uses Facebook auth
-        token: data.accessToken.toString(),
-      });
-
-      if (signInError) throw signInError;
-
-      // Check if user exists in profiles table
-      const { data: existingUser, error: userError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', profile.id)
-        .single();
-
-      return {
-        success: true,
-        user: profile,
-        profile: existingUser,
-        requiresOnboarding: !existingUser,
-      };
-    } catch (error: any) {
-      console.error('Instagram sign-in error:', error);
-      return {
-        success: false,
-        error: error.message || 'Instagram sign-in failed',
-      };
-    }
+    console.warn('Instagram sign-in is not yet implemented for Expo managed workflow.');
+    return {
+      success: false,
+      error: 'Instagram sign-in is not available at this time.',
+    };
   }
 
-  // Get Instagram profile
-  private getInstagramProfile(accessToken: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      const request = new GraphRequest(
-        '/me',
-        {
-          accessToken,
-          parameters: {
-            fields: {
-              string: 'id,name,email,instagram_account',
-            },
-          },
-        },
-        (error: Error | undefined, result?: any) => {
-          if (error) {
-            reject(error);
-          } else {
-            resolve(result);
-          }
-        }
-      );
-
-      new GraphRequestManager().addRequest(request).start();
-    });
-  }
 
   // Complete onboarding process
   async completeOnboarding(onboardingData: OnboardingData): Promise<SocialAuthResult> {
@@ -498,7 +406,6 @@ class AuthService {
   async signOut(): Promise<void> {
     try {
       await supabase.auth.signOut();
-      await LoginManager.logOut();
     } catch (error) {
       console.error('Sign out error:', error);
     }

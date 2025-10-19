@@ -9,12 +9,11 @@ import {
   StyleSheet,
   Dimensions,
   Animated,
-  Image,
   Share,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Blurhash from 'react-native-blurhash';
+import { Image } from 'expo-image';
 
 const { width: screenWidth } = Dimensions.get('window');
 const POST_IMAGE_WIDTH = screenWidth - 32; // Account for padding
@@ -30,8 +29,6 @@ const OptimizedPostCard = memo(({
   onPress,
   style,
 }) => {
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
   const [likeAnimation] = useState(new Animated.Value(1));
 
   // Memoize computed values to prevent recalculation
@@ -97,15 +94,6 @@ const OptimizedPostCard = memo(({
     onPress?.(post);
   }, [post, onPress]);
 
-  const handleImageLoad = useCallback(() => {
-    setImageLoading(false);
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setImageLoading(false);
-    setImageError(true);
-  }, []);
-
   // Render feed type indicator
   const renderFeedTypeIndicator = () => {
     if (post.feed_type === 'trending') {
@@ -144,36 +132,13 @@ const OptimizedPostCard = memo(({
 
     return (
       <View style={styles.imageContainer}>
-        {/* Blurhash placeholder */}
-        {imageLoading && (
-          <View style={styles.blurhashContainer}>
-            <Blurhash
-              hash={blurhash}
-              style={styles.blurhash}
-              blurhashAsImage={true}
-            />
-          </View>
-        )}
-
-        {/* Actual image */}
         <Image
           source={{ uri: imageUrl }}
-          style={[
-            styles.postImage,
-            imageLoading && { opacity: 0 },
-            imageError && { display: 'none' },
-          ]}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          resizeMode="cover"
+          placeholder={{ blurhash }}
+          style={styles.postImage}
+          contentFit="cover"
+          transition={300}
         />
-
-        {/* Error placeholder */}
-        {imageError && (
-          <View style={styles.imageErrorPlaceholder}>
-            <Text style={styles.imageErrorText}>Image unavailable</Text>
-          </View>
-        )}
 
         {/* Feed type overlay */}
         <View style={styles.imageOverlay}>
@@ -230,7 +195,7 @@ const OptimizedPostCard = memo(({
                 : { uri: 'https://via.placeholder.com/40x40/4ECDC4/FFFFFF?text=U' }
             }
             style={styles.avatar}
-            defaultSource={{ uri: 'https://via.placeholder.com/40x40/4ECDC4/FFFFFF?text=U' }}
+            placeholder={{ blurhash: 'LEHV6nWB2yk8pyoJadR*.7kCMdnj' }}
           />
           <View style={styles.authorDetails}>
             <Text style={styles.username}>{post.author.username}</Text>
@@ -399,29 +364,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f8f8',
     position: 'relative',
   },
-  blurhashContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  blurhash: {
-    flex: 1,
-  },
   postImage: {
     width: '100%',
     height: '100%',
-  },
-  imageErrorPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8f8f8',
-  },
-  imageErrorText: {
-    fontSize: 14,
-    color: '#999',
   },
   imageOverlay: {
     position: 'absolute',
