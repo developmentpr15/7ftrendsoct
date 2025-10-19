@@ -137,8 +137,7 @@ class AuthService {
   async checkUsernameAvailability(username: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('username')
+        .from('users')
         .eq('username', username.toLowerCase())
         .single();
 
@@ -181,7 +180,7 @@ class AuthService {
       };
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .insert(profileData)
         .select()
         .single();
@@ -236,9 +235,7 @@ class AuthService {
 
         // Check if user exists in Supabase
         const { data: existingUser, error: userError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', userInfo.sub)
+          .from('users')
           .single();
 
         if (userError && userError.code !== 'PGRST116') {
@@ -333,7 +330,7 @@ class AuthService {
 
         // Check if user exists in profiles table
         const { data: existingUser, error: userError } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('user_id', user.id)
           .single();
@@ -421,7 +418,7 @@ class AuthService {
       }
 
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('user_id', user.id)
         .single();
@@ -461,7 +458,7 @@ class AuthService {
       };
 
       const { data: profile, error: updateError } = await supabase
-        .from('profiles')
+        .from('users')
         .update(updateData)
         .eq('user_id', user.id)
         .select()

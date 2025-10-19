@@ -6,7 +6,6 @@ import {
   RefreshControl,
   StyleSheet,
   Alert,
-  SafeAreaView,
   ActivityIndicator,
   TouchableOpacity,
   Modal,
@@ -14,6 +13,7 @@ import {
   ScrollView,
   Image
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import useAuthStore from '../../store/authStore';
 import { COLORS, SIZES, FONTS, SHADOWS } from '../../utils/constants';

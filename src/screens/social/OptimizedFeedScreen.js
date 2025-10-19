@@ -8,7 +8,6 @@ import {
   FlatList,
   RefreshControl,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Animated,
   InteractionManager,
@@ -16,6 +15,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 

@@ -198,22 +198,13 @@ export const useFeedStore = create<FeedStore>()(
             }
 
             const limit = state.pagination.itemsPerPage;
-            const cursor = refresh ? null : state.pagination.cursor;
+            const offset = refresh ? 0 : state.posts.length;
 
-            // Prepare filters for RPC
-            const filters = {
-              country: state.filters.feedType === 'regional' ? user.country : undefined,
-              style: undefined, // Can be added later
-              time_range: state.filters.timeRange === 'all' ? undefined : state.filters.timeRange,
-            };
-
-            // Call new cursor-based pagination RPC function
-            const { data, error } = await supabase.rpc('get_paginated_feed', {
-              p_user_id: user.id,
-              p_cursor: cursor,
-              p_limit: limit,
-              p_feed_type: state.filters.feedType || 'all',
-              p_filters: filters,
+            // Call user feed RPC function
+            const { data, error } = await supabase.rpc('get_user_feed', {
+              current_user_id: user.id,
+              limit_count: limit,
+              offset_count: offset,
             });
 
             if (error) {
@@ -256,16 +247,12 @@ export const useFeedStore = create<FeedStore>()(
               const analytics = calculateFeedAnalytics(refresh ? transformedPosts : [...state.posts, ...transformedPosts]);
               set({ analytics });
 
-              // Update cursor-based pagination
-              const lastPost = data[data.length - 1];
-              const newCursor = lastPost?.created_at;
+              // Update pagination
               const hasMore = data.length === limit;
 
               set({
                 pagination: {
                   ...state.pagination,
-                  cursor: refresh ? newCursor : state.pagination.cursor,
-                  nextCursor: newCursor,
                   hasMore,
                   currentPage: refresh ? 1 : state.pagination.currentPage + 1,
                   totalItems: refresh ? transformedPosts.length : state.pagination.totalItems + transformedPosts.length,
