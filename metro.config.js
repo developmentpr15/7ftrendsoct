@@ -14,6 +14,11 @@ config.resolver.alias = {
   '@config': './src/config',
   '@hooks': './src/hooks',
   '@services': './src/services',
+  'events': require.resolve('events/'),
+  'http': false,
+  'https': false,
+  'net': false,
+  'ws': require.resolve('./src/utils/ws.js'),
 };
 
 module.exports = config;

@@ -226,13 +226,15 @@ export const useCompetitionStore = create<CompetitionStore>()(
               set({ loading: true, error: null });
             }
 
+            const statusFilter = Array.isArray(state.filters.status) ? state.filters.status : ['active', 'upcoming', 'voting', 'completed'];
+
             const { data, error } = await supabase
               .from('competitions')
               .select(`
                 *,
                 creator:users!competitions_created_by_fkey(id, username, avatar_url)
               `)
-              .in('status', state.filters.status || ['active', 'upcoming', 'voting', 'completed'])
+              .in('status', statusFilter)
               .order('created_at', { ascending: false })
               .range(0, state.pagination.itemsPerPage * state.pagination.currentPage - 1);
 

@@ -36,35 +36,12 @@ export const signUp = async (email, password, username) => {
             id: data.user.id,
             username: username || email.split('@')[0],
             email: data.user.email,
-            password_hash: 'handled_by_supabase_auth', // Placeholder for required field
-            created_at: new Date().toISOString(),
           },
         ]);
 
       if (profileError) {
         console.error('Profile creation error:', profileError);
-
-        // If it's just the password_hash issue, try without it
-        if (profileError.message.includes('password_hash')) {
-          console.log('Retrying without password_hash field...');
-          const { error: retryError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: data.user.id,
-                username: username || email.split('@')[0],
-                email: data.user.email,
-                created_at: new Date().toISOString(),
-              },
-            ]);
-
-          if (retryError) {
-            console.error('Profile creation retry error:', retryError);
-            throw retryError;
-          }
-        } else {
-          throw profileError;
-        }
+        throw profileError;
       }
     }
 
@@ -154,11 +131,11 @@ export const signOut = async () => {
 
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const { data: { session }, error } = await supabase.auth.getSession();
     if (error) throw error;
-    return { user, error: null };
+    return { user: session?.user ?? null, session, error: null };
   } catch (error) {
-    return { user: null, error };
+    return { user: null, session: null, error };
   }
 };
 

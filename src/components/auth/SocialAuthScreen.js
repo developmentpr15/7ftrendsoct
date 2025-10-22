@@ -21,7 +21,6 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { authService } from '../../services/authService';
-import OnboardingFlow from './OnboardingFlow';
 import { supabase } from '../../utils/supabase';
 
 const SocialAuthScreen = ({ initialMode = 'signin' }) => {
@@ -36,8 +35,6 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
     instagram: false,
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [socialUser, setSocialUser] = useState(null);
 
   // Form data
   const [formData, setFormData] = useState({
@@ -91,11 +88,8 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
 
       if (result.success) {
         if (result.requiresOnboarding) {
-          // User needs to complete onboarding
-          setSocialUser(result.user);
-          setShowOnboarding(true);
+          navigation.replace('Onboarding', { initialSocialUser: result.user });
         } else {
-          // User already has profile, sign them in
           navigation.reset({
             index: 0,
             routes: [{ name: 'MainTabs' }],
@@ -119,30 +113,22 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
+      const result = await authService.signInWithEmailOrUsername(
+        formData.email,
+        formData.password
+      );
 
-      if (error) throw error;
-
-      // Check if user has completed onboarding
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        // User needs onboarding
-        setSocialUser(data.user);
-        setShowOnboarding(true);
+      if (result.success) {
+        if (result.requiresOnboarding) {
+          navigation.replace('Onboarding', { initialSocialUser: result.user });
+        } else {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'MainTabs' }],
+          });
+        }
       } else {
-        // User is fully onboarded
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'MainTabs' }],
-        });
+        Alert.alert('Sign In Error', result.error || 'Failed to sign in');
       }
     } catch (error) {
       console.error('Email sign-in error:', error);
@@ -171,9 +157,7 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
 
       if (error) throw error;
 
-      // New user needs onboarding
-      setSocialUser(data.user);
-      setShowOnboarding(true);
+      navigation.replace('Onboarding', { initialSocialUser: data.user });
     } catch (error) {
       console.error('Email sign-up error:', error);
       Alert.alert('Sign Up Error', error.message || 'Failed to create account');
@@ -186,10 +170,10 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
   const validateForm = (isSignUp = false) => {
     const newErrors = {};
 
-    // Email validation
+    // Email/Username validation
     if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email or username is required';
+    } else if (isSignUp && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid email';
     }
 
@@ -227,48 +211,6 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
     }
   };
 
-  // Handle onboarding completion
-  const handleOnboardingComplete = (result) => {
-    setShowOnboarding(false);
-    setSocialUser(null);
-
-    // Reset navigation to main app
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'MainTabs' }],
-    });
-  };
-
-  // Handle onboarding cancel
-  const handleOnboardingCancel = () => {
-    setShowOnboarding(false);
-    setSocialUser(null);
-
-    // Sign out the user since they cancelled onboarding
-    authService.signOut();
-  };
-
-  // If showing onboarding, render onboarding flow
-  if (showOnboarding) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
-        <OnboardingFlow
-          initialSocialUser={socialUser}
-          onComplete={handleOnboardingComplete}
-        />
-
-        {/* Cancel button for onboarding */}
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={handleOnboardingCancel}
-        >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -283,17 +225,21 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
         >
           {/* Header */}
           <View style={styles.header}>
+            {navigation.canGoBack() && (
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => navigation.goBack()}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                }
+              }}
             >
               <Ionicons name="chevron-back" size={24} color="#666" />
             </TouchableOpacity>
+          )}
 
             <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <Ionicons name="heart" size={40} color="#FF6B6B" />
-              </View>
+              <Image source={require('C:\\Users\\meoja\\7ftrends\\logo.png')} style={styles.logo} />
               <Text style={styles.appName}>7Ftrends</Text>
               <Text style={styles.tagline}>Style Without Borders</Text>
             </View>
@@ -319,7 +265,7 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
                   style={styles.input}
                   value={formData.email}
                   onChangeText={(text) => updateFormData('email', text)}
-                  placeholder="Email address"
+                  placeholder="Email or username"
                   placeholderTextColor="#999"
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -504,12 +450,9 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   logo: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#fff0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 150,
+    height: 150,
+    resizeMode: 'contain',
     marginBottom: 16,
   },
   appName: {

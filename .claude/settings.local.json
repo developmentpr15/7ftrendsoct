@@ -38,7 +38,8 @@
       "Bash(dir:*)",
       "Bash(npx react-native bundle:*)",
       "Bash(npx @expo/metro-config node_modules/metro/src/cli.js bundle:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx supabase login:*)"
     ],
     "deny": [],
     "ask": []

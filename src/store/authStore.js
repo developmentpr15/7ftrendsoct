@@ -27,104 +27,58 @@ const useAuthStore = create(
 
       // Initialize auth state
       initAuth: () => {
-        const state = get();
-        if (state.initialized) {
-          // Already initialized, just check current session
-          console.log('Auth already initialized, checking current session...');
-          getCurrentUser().then(({ user, error }) => {
-            if (!error && user) {
-              set({
-                user,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-            } else {
-              set({
-                user: null,
-                isAuthenticated: false,
-                isLoading: false,
-              });
-              if (error) {
-                console.log('Auth re-check error:', error.message);
-              }
-            }
-          }).catch(err => {
-            console.log('Auth re-check failed:', err);
-            set({
-              user: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
-          });
+        if (get().initialized) {
+          console.log('Auth already initialized.');
           return;
         }
 
+        console.log('Initializing auth state...');
         set({ isLoading: true });
 
-        // Check current user on startup
-        getCurrentUser().then(({ user, error }) => {
-          if (!error && user) {
-            set({
-              user,
-              session: { user }, // Basic session structure
-              isAuthenticated: true,
-              isLoading: false,
-              initialized: true,
-            });
-            console.log('Auth initialized successfully for user:', user.id);
-          } else {
-            // Clear any invalid session
-            set({
-              user: null,
-              session: null,
-              isAuthenticated: false,
-              isLoading: false,
-              initialized: true,
-            });
-            if (error) {
-              console.log('Auth initialization error (expected if session expired):', error.message);
-            }
-          }
-        }).catch(err => {
-          console.log('Auth initialization failed:', err);
+        // Centralized function to handle session updates
+        const handleSession = (session) => {
+          const user = session?.user || null;
           set({
-            user: null,
-            session: null,
-            isAuthenticated: false,
+            user,
+            session,
+            isAuthenticated: !!user,
             isLoading: false,
             initialized: true,
           });
-        });
-
-        // Listen for auth changes
-        const { data: authListener } = onAuthStateChange((event, session) => {
-          console.log('Auth state changed:', event, session?.user?.id);
-
-          if (event === 'TOKEN_REFRESHED' && session?.user) {
-            set({
-              user: session.user,
-              session,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          } else if (event === 'SIGNED_OUT' || !session?.user) {
-            set({
-              user: null,
-              session: null,
-              isAuthenticated: false,
-              isLoading: false,
-            });
-          } else if (event === 'SIGNED_IN' && session?.user) {
-            set({
-              user: session.user,
-              session,
-              isAuthenticated: true,
-              isLoading: false,
-            });
+          if (user) {
+            console.log('Session updated for user:', user.id);
+          } else {
+            console.log('Session cleared.');
           }
+        };
+
+        // Listen for auth state changes
+        const { data: { subscription } } = onAuthStateChange((event, session) => {
+          console.log(`Auth state changed: ${event}`);
+          handleSession(session);
         });
 
-        return authListener.subscription;
+        // Check the initial session
+        getCurrentUser()
+          .then(({ user, session, error }) => {
+            if (error) {
+              console.log('Initial session check error:', error.message);
+              handleSession(null);
+            } else {
+              handleSession(session);
+            }
+          })
+          .catch(err => {
+            console.log('Initial session check failed:', err);
+            handleSession(null);
+          });
+
+        return () => {
+          if (subscription) {
+            console.log('Unsubscribing from auth state changes.');
+            subscription.unsubscribe();
+          }
+        };
       },
 
       // Manual login method

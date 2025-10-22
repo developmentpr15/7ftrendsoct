@@ -55,6 +55,7 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
 
   // UI states
   const [usernameValid, setUsernameValid] = useState(null);
+  const [usernameError, setUsernameError] = useState('');
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [selectedTimezone, setSelectedTimezone] = useState(null);
@@ -96,22 +97,29 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
   const checkUsername = async (username) => {
     if (!username || username.length < 3) {
       setUsernameValid(false);
+      setUsernameError('Username must be at least 3 characters long.');
       return;
     }
 
     if (username.length > 20) {
       setUsernameValid(false);
+      setUsernameError('Username cannot be more than 20 characters long.');
       return;
     }
 
     setCheckingUsername(true);
+    setUsernameError('');
 
     try {
       const isAvailable = await authService.checkUsernameAvailability(username);
       setUsernameValid(isAvailable);
+      if (!isAvailable) {
+        setUsernameError('This username is already taken. Please choose another one.');
+      }
     } catch (error) {
       console.error('Error checking username:', error);
       setUsernameValid(false);
+      setUsernameError('Error checking username. Please try again.');
     } finally {
       setCheckingUsername(false);
     }
@@ -399,8 +407,8 @@ const OnboardingFlow = ({ initialSocialUser = null, onComplete }) => {
           {usernameValid === true && (
             <Text style={styles.successText}>✓ Username is available</Text>
           )}
-          {usernameValid === false && (
-            <Text style={styles.errorText}>✗ Username is taken or invalid</Text>
+          {usernameError && (
+            <Text style={styles.errorText}>{usernameError}</Text>
           )}
         </View>
 

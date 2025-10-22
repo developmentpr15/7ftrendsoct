@@ -137,7 +137,8 @@ class AuthService {
   async checkUsernameAvailability(username: string): Promise<boolean> {
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
+        .select('username')
         .eq('username', username.toLowerCase())
         .single();
 
@@ -180,7 +181,7 @@ class AuthService {
       };
 
       const { data, error } = await supabase
-        .from('users')
+        .from('profiles')
         .insert(profileData)
         .select()
         .single();
@@ -418,9 +419,9 @@ class AuthService {
       }
 
       const { data: profile, error: profileError } = await supabase
-        .from('users')
+        .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
 
       if (profileError) {
@@ -458,9 +459,9 @@ class AuthService {
       };
 
       const { data: profile, error: updateError } = await supabase
-        .from('users')
+        .from('profiles')
         .update(updateData)
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .select()
         .single();
 
@@ -470,6 +471,94 @@ class AuthService {
     } catch (error: any) {
       console.error('Error updating user profile:', error);
       throw error;
+    }
+  }
+  // Sign in with email or username
+  async signInWithEmailOrUsername(loginIdentifier: string, password: string): Promise<SocialAuthResult> {
+    try {
+      console.log('Attempting sign in for:', loginIdentifier);
+      let emailToSignIn = loginIdentifier;
+
+      // Check if the loginIdentifier is an email
+      const isEmail = /\S+@\S+\.\S+/.test(loginIdentifier);
+      console.log('Is loginIdentifier an email?', isEmail);
+
+      if (!isEmail) {
+        // If it's not an email, assume it's a username and try to find the associated email
+        console.log('Login identifier is not an email, attempting username lookup...');
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', loginIdentifier.toLowerCase())
+          .single();
+
+        if (profileError) {
+          console.error('Profile lookup error:', profileError);
+          throw new Error('Invalid username or password.');
+        }
+        if (!profile) {
+          console.log('No profile found for username:', loginIdentifier);
+          throw new Error('Invalid username or password.');
+        }
+        emailToSignIn = profile.email;
+        console.log('Found email for username:', emailToSignIn);
+      }
+
+      console.log('Attempting Supabase sign in with email:', emailToSignIn);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: emailToSignIn,
+        password: password,
+      });
+
+      if (error) {
+        console.error('Supabase signInWithPassword error:', error);
+        // Handle specific network errors
+        if (error.message.includes('Failed to fetch') ||
+            error.message.includes('Network request failed') ||
+            error.status === 0) {
+          return {
+            success: false,
+            error: 'Network connection failed, please check your network settings',
+          };
+        }
+
+        // Handle invalid credentials specifically
+        if (error.message.includes('Invalid login credentials') ||
+            error.message.includes('invalid_credentials')) {
+          return {
+            success: false,
+            error: 'Invalid email/username or password. Please check your credentials.',
+          };
+        }
+        throw error;
+      }
+
+      console.log('Supabase sign in successful. Checking onboarding status...');
+      // Check if user has completed onboarding
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileCheckError && profileCheckError.code !== 'PGRST116') { // PGRST116 means no rows found
+        console.error('Onboarding profile check error:', profileCheckError);
+        throw profileCheckError;
+      }
+
+      console.log('Onboarding status:', !existingProfile ? 'Requires Onboarding' : 'Onboarded');
+      return {
+        success: true,
+        user: data.user,
+        profile: existingProfile,
+        requiresOnboarding: !existingProfile,
+      };
+    } catch (error: any) {
+      console.error('Sign in process failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Login failed, please try again later',
+      };
     }
   }
 }
@@ -487,6 +576,7 @@ export const {
   getCurrentUserProfile,
   updateUserProfile,
   checkUsernameAvailability,
+  signInWithEmailOrUsername,
 } = authService;
 
 export default authService;

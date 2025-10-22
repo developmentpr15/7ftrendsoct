@@ -9,12 +9,14 @@ import { useAuthStore } from '../store/authStore';
 import { testSupabaseConnection } from '../utils/supabase';
 import { initializeStores } from '../store';
 import { useRealtimeConnection } from '../store/realtimeStore';
+import { authService } from '../services/authService'; // Import authService
 
 const AppNavigator = () => {
   const { user, isLoading, isAuthenticated, initAuth } = useAuthStore();
   const { isConnected: realtimeConnected, initialize: initializeRealtime } = useRealtimeConnection();
   const [connectionStatus, setConnectionStatus] = useState('loading');
   const [connectionError, setConnectionError] = useState(null);
+  const [isOnboarded, setIsOnboarded] = useState(null); // null: not checked, false: not onboarded, true: onboarded
 
   useEffect(() => {
     // Test connection first
@@ -64,6 +66,18 @@ const AppNavigator = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (isAuthenticated && user && isOnboarded === null) {
+        const profile = await authService.getCurrentUserProfile();
+        setIsOnboarded(!!profile);
+      } else if (!isAuthenticated) {
+        setIsOnboarded(null); // Reset onboarding status if user logs out
+      }
+    };
+    checkOnboardingStatus();
+  }, [isAuthenticated, user, isOnboarded]);
+
   // Show connection error if connection fails
   if (connectionStatus === 'error') {
     return (
@@ -84,8 +98,8 @@ const AppNavigator = () => {
     );
   }
 
-  // Show loading while checking connection or auth
-  if (isLoading || connectionStatus === 'loading') {
+  // Show loading while checking connection or auth or onboarding status
+  if (isLoading || connectionStatus === 'loading' || (isAuthenticated && isOnboarded === null)) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
         <ActivityIndicator size="large" color={COLORS.accent} />
@@ -99,7 +113,15 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <StatusBar style="light" backgroundColor={COLORS.primary} />
-      {isAuthenticated ? <TabNavigator /> : <AuthNavigator />}
+      {isAuthenticated ? (
+        isOnboarded ? (
+          <TabNavigator />
+        ) : (
+          <AuthNavigator initialRouteName="Onboarding" />
+        )
+      ) : (
+        <AuthNavigator />
+      )}
     </NavigationContainer>
   );
 };

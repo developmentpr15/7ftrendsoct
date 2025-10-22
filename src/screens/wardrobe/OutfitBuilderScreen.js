@@ -78,7 +78,11 @@ const OutfitBuilderScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          }
+        }}>
           <Ionicons name="chevron-back" size={24} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Outfit Builder</Text>
