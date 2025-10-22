@@ -123,6 +123,15 @@ interface FeedStore {
   // Utility
   clearError: () => void;
   setLoading: (loading: boolean) => void;
+
+  // Direct State Manipulation (for FeedScreen)
+  setPosts: (posts: Post[]) => void;
+  appendPosts: (posts: Post[]) => void;
+  prependPosts: (posts: Post[]) => void;
+  updatePost: (postId: string, updates: Partial<Post>) => void;
+  deletePost: (postId: string) => void;
+  setHasMore: (hasMore: boolean) => void;
+  setRefreshing: (refreshing: boolean) => void;
 }
 
 // Storage configuration for persistence
@@ -645,6 +654,31 @@ export const useFeedStore = create<FeedStore>()(
         // Utility
         clearError: () => set({ error: null }),
         setLoading: (loading: boolean) => set({ loading }),
+
+        // Direct State Manipulation (for FeedScreen)
+        setPosts: (posts: Post[]) => set({ posts }),
+        appendPosts: (newPosts: Post[]) => set((state) => ({
+          posts: Array.isArray(state.posts) ? [...state.posts, ...newPosts] : newPosts
+        })),
+        prependPosts: (newPosts: Post[]) => set((state) => ({
+          posts: Array.isArray(newPosts) ? [...newPosts, ...(state.posts || [])] : newPosts
+        })),
+        updatePost: (postId: string, updates: Partial<Post>) => set((state) => ({
+          posts: Array.isArray(state.posts)
+            ? state.posts.map(post =>
+                post.id === postId ? { ...post, ...updates } : post
+              )
+            : state.posts
+        })),
+        deletePost: (postId: string) => set((state) => ({
+          posts: Array.isArray(state.posts)
+            ? state.posts.filter(post => post.id !== postId)
+            : state.posts
+        })),
+        setHasMore: (hasMore: boolean) => set((state) => ({
+          pagination: { ...state.pagination, hasMore }
+        })),
+        setRefreshing: (refreshing: boolean) => set({ refreshing }),
       }),
       storageConfig
     )

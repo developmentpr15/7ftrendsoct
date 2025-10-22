@@ -1,9 +1,9 @@
 // Backup of original App.js
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import ErrorBoundary from './src/components/ErrorBoundary';
-import AppNavigator from './src/navigation/AppNavigator';
-import useAuthStore from './src/store/authStore';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import AppNavigator from '@/navigation/AppNavigator';
+import useAuthStore from '@/store/authStore';
 
 export default function App() {
   useEffect(() => {

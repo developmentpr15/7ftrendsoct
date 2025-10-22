@@ -96,59 +96,69 @@ serve(async (req) => {
 
     console.log(`Processing AI tagging for item: ${itemId}, image: ${imageUrl}`)
 
-    // Initialize Google Vision API
-    const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    })
-
-    // Get Vision API client
-    const vision = await auth.getApplicationDefault()
-    const projectId = await auth.getProjectId()
-
-    // Prepare Vision API request
-    const visionRequest = {
-      requests: [{
-        image: {
-          source: {
-            imageUri: imageUrl
-          }
-        },
-        features: [
-          { type: 'LABEL_DETECTION', maxResults: 10 },
-          { type: 'WEB_DETECTION', maxResults: 5 },
-          { type: 'IMAGE_PROPERTIES', maxResults: 5 },
-          { type: 'OBJECT_LOCALIZATION', maxResults: 10 }
-        ]
-      }]
+    // Initialize Gemini 2.5 Pro for image analysis
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+    if (!geminiApiKey) {
+      throw new Error('GEMINI_API_KEY environment variable not set')
     }
 
-    // Call Vision API
-    const visionResponse = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${Deno.env.get('GOOGLE_VISION_API_KEY')}`,
+    // Prepare Gemini 2.5 Pro request for image description
+    const geminiRequest = {
+      contents: [{
+        parts: [
+          {
+            text: `Analyze this clothing item image and provide a detailed description in JSON format with the following structure:
+{
+  "description": "Brief description of the item",
+  "category": "one of: top, bottom, dress, outerwear, shoes, accessories, underwear",
+  "colors": ["primary colors detected"],
+  "materials": ["fabrics or materials detected"],
+  "style": "style type (casual, formal, sporty, elegant, vintage, modern, classic)",
+  "occasions": ["appropriate occasions: casual, formal, party, sports, beach, outdoor, work, date, travel"],
+  "seasons": ["appropriate seasons: spring, summer, fall, winter"],
+  "tags": ["descriptive tags"],
+  "confidence": 0.95
+}
+
+Focus on accurate clothing categorization and color detection. Be specific about materials and style.`
+          },
+          {
+            inline_data: {
+              mime_type: "image/jpeg",
+              data: await getImageBase64(imageUrl)
+            }
+          }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.1,
+        topK: 32,
+        topP: 0.95,
+        maxOutputTokens: 1024,
+      }
+    }
+
+    // Call Gemini 2.5 Pro API
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(visionRequest)
+        body: JSON.stringify(geminiRequest)
       }
     )
 
-    if (!visionResponse.ok) {
-      throw new Error(`Vision API error: ${visionResponse.statusText}`)
+    if (!geminiResponse.ok) {
+      throw new Error(`Gemini API error: ${geminiResponse.statusText}`)
     }
 
-    const visionResult = await visionResponse.json()
-    const annotations = visionResult.responses[0]
+    const geminiResult = await geminiResponse.json()
+    console.log('Gemini API response received:', JSON.stringify(geminiResult, null, 2))
 
-    if (!annotations) {
-      throw new Error('No annotations returned from Vision API')
-    }
-
-    console.log('Vision API annotations received:', JSON.stringify(annotations, null, 2))
-
-    // Process Vision API results
-    const aiTags = processVisionAnnotations(annotations)
+    // Extract AI tags from Gemini response
+    const aiTags = processGeminiResponse(geminiResult)
 
     console.log('Generated AI tags:', aiTags)
 
@@ -200,6 +210,78 @@ serve(async (req) => {
     )
   }
 })
+
+// Helper function to convert image URL to base64
+async function getImageBase64(imageUrl: string): Promise<string> {
+  try {
+    // Fetch the image
+    const response = await fetch(imageUrl)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`)
+    }
+
+    const arrayBuffer = await response.arrayBuffer()
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+    return base64
+  } catch (error) {
+    console.error('Error converting image to base64:', error)
+    throw new Error(`Failed to process image: ${error.message}`)
+  }
+}
+
+// Process Gemini 2.5 Pro response
+function processGeminiResponse(geminiResult: any) {
+  try {
+    const candidate = geminiResult.candidates?.[0]
+    if (!candidate) {
+      throw new Error('No candidates in Gemini response')
+    }
+
+    const content = candidate.content?.parts?.[0]?.text
+    if (!content) {
+      throw new Error('No content in Gemini response')
+    }
+
+    console.log('Raw Gemini response:', content)
+
+    // Extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('No JSON found in Gemini response')
+    }
+
+    const aiData = JSON.parse(jsonMatch[0])
+    console.log('Parsed AI data:', aiData)
+
+    // Validate and structure the response
+    return {
+      tags: aiData.tags || [],
+      category: aiData.category || 'top',
+      colors: aiData.colors || [],
+      occasions: aiData.occasions || ['casual'],
+      seasons: aiData.seasons || ['spring', 'summer', 'fall', 'winter'],
+      style: aiData.style || 'casual',
+      materials: aiData.materials || [],
+      confidence: aiData.confidence || 0.8,
+      description: aiData.description || ''
+    }
+  } catch (error) {
+    console.error('Error processing Gemini response:', error)
+
+    // Fallback to basic categorization
+    return {
+      tags: ['clothing'],
+      category: 'top',
+      colors: ['unknown'],
+      occasions: ['casual'],
+      seasons: ['spring', 'summer', 'fall', 'winter'],
+      style: 'casual',
+      materials: [],
+      confidence: 0.5,
+      description: 'AI processing failed - basic categorization applied'
+    }
+  }
+}
 
 function processVisionAnnotations(annotations: any) {
   const tags: string[] = []
