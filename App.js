@@ -1,3 +1,4 @@
+// Backup of original App.js
 import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import ErrorBoundary from './src/components/ErrorBoundary';

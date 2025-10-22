@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   rankText: {
-    fontSize: FONONTS.sizes.md,
+    fontSize: FONTS.sizes.md,
     fontWeight: '700',
     color: COLORS.textSecondary,
   },
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.sm,
   },
   entryTitle: {
-    fontSize: FONONTS.sizes.md,
+    fontSize: FONTS.sizes.md,
     fontWeight: '600',
     color: COLORS.text,
     marginBottom: SIZES.xs,
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     marginBottom: SIZES.xs,
   },
   winnerEntry: {
-    fontSize: FONONTS.sizes.md,
+    fontSize: FONTS.sizes.md,
     color: COLORS.textSecondary,
     marginBottom: SIZES.sm,
     fontStyle: 'italic',

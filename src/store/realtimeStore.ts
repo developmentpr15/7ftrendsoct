@@ -576,7 +576,7 @@ function handleUnlikeEvent(event: RealtimeEvent) {
         };
       }
       return post;
-    });
+    }) : [];
 
     feedStore.posts = updatedPosts;
   }
@@ -596,7 +596,7 @@ function handleCommentDeleteEvent(event: RealtimeEvent) {
         };
       }
       return post;
-    });
+    }) : [];
 
     feedStore.posts = updatedPosts;
   }

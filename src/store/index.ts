@@ -137,16 +137,16 @@ export const initializeStores = async () => {
       try {
         const { fetchCompetitions } = useCompetitionStore.getState();
         await fetchCompetitions(true);
-      } catch (error) {
-        console.warn('Failed to preload competitions:', error.message);
+      } catch (error: any) {
+        console.warn('Failed to preload competitions:', error?.message || 'Unknown error');
       }
 
       // Preload wardrobe stats (with error handling)
       try {
         const { calculateStats } = useWardrobeStore.getState();
         calculateStats();
-      } catch (error) {
-        console.warn('Failed to calculate wardrobe stats:', error.message);
+      } catch (error: any) {
+        console.warn('Failed to calculate wardrobe stats:', error?.message || 'Unknown error');
       }
     }
   } catch (error) {

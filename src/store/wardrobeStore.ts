@@ -656,7 +656,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
                     ? {
                         ...item,
                         ai_status: status.status,
-                        ai_confidence: status.confidence,
+                        ai_confidence: status.confidence || null,
                         ai_error_message: status.error || null,
                         ai_processed_at: status.processedAt || new Date().toISOString()
                       }

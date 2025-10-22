@@ -53,11 +53,14 @@ export const useFeed = (options = {}) => {
 
       // Update posts state
       if (refresh || !loadMore) {
-        setPosts(feedData);
-        offsetRef.current = feedData.length;
+        setPosts(Array.isArray(feedData) ? feedData : []);
+        offsetRef.current = Array.isArray(feedData) ? feedData.length : 0;
       } else {
-        setPosts(prev => [...prev, ...feedData]);
-        offsetRef.current += feedData.length;
+        setPosts(prev => Array.isArray(prev) && Array.isArray(feedData)
+          ? [...prev, ...feedData]
+          : Array.isArray(feedData) ? feedData : (Array.isArray(prev) ? prev : [])
+        );
+        offsetRef.current += Array.isArray(feedData) ? feedData.length : 0;
       }
 
       // Check if there are more posts
@@ -175,7 +178,7 @@ export const useFeed = (options = {}) => {
         post.id === postId
           ? { ...post, is_liked: true, likes_count: post.likes_count + 1 }
           : post
-      ));
+      ) : []);
       console.error('Error unliking post:', error);
     }
   }, [user?.id]);
@@ -190,7 +193,7 @@ export const useFeed = (options = {}) => {
         post.id === postId && post.feed_type === 'competition'
           ? { ...post, is_liked: true, likes_count: post.likes_count + 1 }
           : post
-      ));
+      ) : []);
 
       // Call service
       await feedService.voteForEntry(user.id, postId, score);
@@ -202,7 +205,7 @@ export const useFeed = (options = {}) => {
         post.id === postId
           ? { ...post, is_liked: false, likes_count: Math.max(0, post.likes_count - 1) }
           : post
-      ));
+      ) : []);
       console.error('Error voting for entry:', error);
     }
   }, [user?.id]);

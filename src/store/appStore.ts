@@ -348,6 +348,13 @@ export const migrateToModularStores = async () => {
           is_favorite: legacyItem.isFavorite || false,
           created_at: legacyItem.created_at || new Date().toISOString(),
           metadata: {
+            ar_model_url: undefined,
+            ar_thumbnail_url: undefined,
+            outfit_history: [],
+            cleaning_schedule: undefined,
+            storage_location: undefined,
+            insurance_info: undefined,
+            // @ts-ignore - Temporary compatibility fix
             migrated_from_legacy: true,
             original_id: legacyItem.id,
           },

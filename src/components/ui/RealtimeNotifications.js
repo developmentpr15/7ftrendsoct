@@ -84,13 +84,13 @@ const RealtimeNotifications = () => {
 
   // Filter and limit notifications for display
   const displayNotifications = useMemo(() => {
-    return notifications.slice(0, 5); // Show max 5 notifications at once
+    return Array.isArray(notifications) ? notifications.slice(0, 5) : []; // Show max 5 notifications at once
   }, [notifications]);
 
   // Initialize animations for new notifications
   useEffect(() => {
-    displayNotifications.forEach((notification, index) => {
-      if (!animatedValues.has(notification.id)) {
+    Array.isArray(displayNotifications) && displayNotifications.forEach((notification, index) => {
+      if (notification && notification.id && !animatedValues.has(notification.id)) {
         const animatedValue = new Animated.Value(-NOTIFICATION_WIDTH);
         animatedValues.set(notification.id, animatedValue);
 

@@ -449,15 +449,21 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    ...theme.components.button.primary,
+    fontFamily: theme.components.button.primary.fontFamily || FONTS.medium,
+    fontSize: theme.components.button.primary.fontSize || FONTS.sizes.md,
+    fontWeight: theme.components.button.primary.fontWeight || '600',
     color: theme.colors.text.primary,
   },
   secondaryButtonText: {
-    ...theme.components.button.secondary,
+    fontFamily: theme.components.button.secondary.fontFamily || FONTS.medium,
+    fontSize: theme.components.button.secondary.fontSize || FONTS.sizes.md,
+    fontWeight: theme.components.button.secondary.fontWeight || '600',
     color: theme.colors.text.primary,
   },
   ghostButtonText: {
-    ...theme.components.button.ghost,
+    fontFamily: theme.components.button.ghost.fontFamily || FONTS.medium,
+    fontSize: theme.components.button.ghost.fontSize || FONTS.sizes.md,
+    fontWeight: theme.components.button.ghost.fontWeight || '600',
     color: theme.colors.text.secondary,
   },
   divider: {

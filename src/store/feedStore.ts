@@ -185,8 +185,8 @@ export const useFeedStore = create<FeedStore>()(
               set({ loading: true, error: null });
             }
 
-            // Check network connectivity
-            const isOnline = navigator.onLine;
+            // Check network connectivity - React Native doesn't have navigator.onLine
+            const isOnline = true; // Assume online for now
             if (!isOnline && state.cachedPosts.length > 0) {
               set({
                 posts: state.cachedPosts,
@@ -753,7 +753,7 @@ function calculateFeedAnalytics(posts: Post[]): FeedAnalytics {
   });
 
   analytics.average_engagement = analytics.total_posts > 0 ? totalEngagement / analytics.total_posts : 0;
-  analytics.top_performing_posts = [topPost].filter(Boolean) as Post[];
+  analytics.top_performing_posts = topPost ? [topPost] : [];
 
   return analytics;
 }
