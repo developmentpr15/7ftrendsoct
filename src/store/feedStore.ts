@@ -221,7 +221,7 @@ export const useFeedStore = create<FeedStore>()(
               return;
             }
 
-            if (data && data.length > 0) {
+            if (Array.isArray(data) && data.length > 0) {
               // Transform data
               const transformedPosts = data.map(transformPostData);
 
@@ -318,7 +318,7 @@ export const useFeedStore = create<FeedStore>()(
           try {
             // Optimistic update
             set({
-              posts: state.posts.map(post =>
+              posts: Array.isArray(state.posts) ? state.posts.map(post =>
                 post.id === postId
                   ? {
                       ...post,
@@ -326,7 +326,7 @@ export const useFeedStore = create<FeedStore>()(
                       likes_count: post.likes_count + 1
                     }
                   : post
-              ),
+              ) : [],
             });
 
             // API call
@@ -340,15 +340,15 @@ export const useFeedStore = create<FeedStore>()(
             if (error) {
               // Revert on error
               set({
-                posts: state.posts.map(post =>
+                posts: Array.isArray(state.posts) ? state.posts.map(post =>
                   post.id === postId
                     ? {
                         ...post,
                         is_liked: false,
-                        likes_count: post.likes_count - 1
+                        likes_count: Math.max(0, post.likes_count - 1)
                       }
                     : post
-                ),
+                ) : [],
               });
 
               // Add to offline queue if network error
@@ -361,15 +361,15 @@ export const useFeedStore = create<FeedStore>()(
             console.error('Like post error:', error);
             // Revert optimistic update
             set({
-              posts: state.posts.map(post =>
+              posts: Array.isArray(state.posts) ? state.posts.map(post =>
                 post.id === postId
                   ? {
                       ...post,
                       is_liked: false,
-                      likes_count: post.likes_count - 1
+                      likes_count: Math.max(0, post.likes_count - 1)
                     }
                   : post
-              ),
+              ) : [],
             });
           }
         },
@@ -383,7 +383,7 @@ export const useFeedStore = create<FeedStore>()(
           try {
             // Optimistic update
             set({
-              posts: state.posts.map(post =>
+              posts: Array.isArray(state.posts) ? state.posts.map(post =>
                 post.id === postId
                   ? {
                       ...post,
@@ -391,7 +391,7 @@ export const useFeedStore = create<FeedStore>()(
                       likes_count: Math.max(0, post.likes_count - 1)
                     }
                   : post
-              ),
+              ) : [],
             });
 
             // API call
@@ -404,7 +404,7 @@ export const useFeedStore = create<FeedStore>()(
             if (error) {
               // Revert on error
               set({
-                posts: state.posts.map(post =>
+                posts: Array.isArray(state.posts) ? state.posts.map(post =>
                   post.id === postId
                     ? {
                         ...post,
@@ -412,7 +412,7 @@ export const useFeedStore = create<FeedStore>()(
                         likes_count: post.likes_count + 1
                       }
                     : post
-                ),
+                ) : [],
               });
             }
 
@@ -420,7 +420,7 @@ export const useFeedStore = create<FeedStore>()(
             console.error('Unlike post error:', error);
             // Revert optimistic update
             set({
-              posts: state.posts.map(post =>
+              posts: Array.isArray(state.posts) ? state.posts.map(post =>
                 post.id === postId
                   ? {
                       ...post,
@@ -428,7 +428,7 @@ export const useFeedStore = create<FeedStore>()(
                       likes_count: post.likes_count + 1
                     }
                   : post
-              ),
+              ) : [],
             });
           }
         },
@@ -455,7 +455,7 @@ export const useFeedStore = create<FeedStore>()(
 
             // Remove post from feed
             set({
-              posts: state.posts.filter(post => post.id !== postId),
+              posts: Array.isArray(state.posts) ? state.posts.filter(post => post.id !== postId) : [],
             });
 
           } catch (error: any) {
@@ -469,11 +469,11 @@ export const useFeedStore = create<FeedStore>()(
           try {
             // Optimistic update
             set({
-              posts: state.posts.map(post =>
+              posts: Array.isArray(state.posts) ? state.posts.map(post =>
                 post.id === postId
                   ? { ...post, shares_count: post.shares_count + 1 }
                   : post
-              ),
+              ) : [],
             });
 
             // Track share in database
@@ -488,11 +488,11 @@ export const useFeedStore = create<FeedStore>()(
             if (error) {
               // Revert on error
               set({
-                posts: state.posts.map(post =>
+                posts: Array.isArray(state.posts) ? state.posts.map(post =>
                   post.id === postId
-                    ? { ...post, shares_count: post.shares_count - 1 }
+                    ? { ...post, shares_count: Math.max(0, post.shares_count - 1) }
                     : post
-                ),
+                ) : [],
               });
             }
 
@@ -562,7 +562,7 @@ export const useFeedStore = create<FeedStore>()(
 
             if (error) throw error;
 
-            return data.map(transformPostData);
+            return Array.isArray(data) ? data.map(transformPostData) : [];
 
           } catch (error: any) {
             console.error('Search posts error:', error);
@@ -716,8 +716,10 @@ function getTimeAgo(dateString: string): string {
 }
 
 function calculateFeedAnalytics(posts: Post[]): FeedAnalytics {
+  const safePosts = Array.isArray(posts) ? posts : [];
+
   const analytics = {
-    total_posts: posts.length,
+    total_posts: safePosts.length,
     mutual_friends_posts: 0,
     following_posts: 0,
     own_posts: 0,
@@ -731,7 +733,7 @@ function calculateFeedAnalytics(posts: Post[]): FeedAnalytics {
   let maxEngagement = 0;
   let topPost: Post | null = null;
 
-  posts.forEach(post => {
+  safePosts.forEach(post => {
     // Count by type
     if (post.feed_type === 'mutual_friend') analytics.mutual_friends_posts++;
     else if (post.feed_type === 'following') analytics.following_posts++;
@@ -775,7 +777,7 @@ async function getFallbackFeed(userId: string, limit: number, offset: number): P
 
     if (error) throw error;
 
-    return data.map(post => ({
+    return Array.isArray(data) ? data.map(post => ({
       ...transformPostData(post),
       feed_type: 'fallback',
       metadata: {
@@ -784,7 +786,7 @@ async function getFallbackFeed(userId: string, limit: number, offset: number): P
         is_mutual_friend: false,
         is_competition_entry: false,
       },
-    }));
+    })) : [];
 
   } catch (error) {
     console.error('Fallback feed error:', error);

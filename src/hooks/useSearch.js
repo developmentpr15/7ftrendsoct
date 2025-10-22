@@ -16,11 +16,11 @@ export const useSearch = (data) => {
       return;
     }
 
-    const filtered = data.filter(item =>
+      const filtered = Array.isArray(data) ? data.filter(item =>
       item.username?.toLowerCase().includes(query.toLowerCase()) ||
       item.outfit?.toLowerCase().includes(query.toLowerCase()) ||
       item.items?.some(item => item.toLowerCase().includes(query.toLowerCase()))
-    );
+    ) : [];
     setSearchResults(filtered);
   }, [data]);
 

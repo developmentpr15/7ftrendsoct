@@ -104,21 +104,21 @@ const CompetitionVotingScreen = ({ route, navigation }) => {
       // For now, using mock data based on leaderboard
       if (currentCompetition) {
         // Transform leaderboard entries into full entries
-        const transformedEntries = leaderboard.map((item, index) => ({
-          id: item.entry_id,
-          participant_id: item.participant_id,
+        const transformedEntries = Array.isArray(leaderboard) ? leaderboard.map((item, index) => ({
+          id: item?.entry_id || `entry-${index}`,
+          participant_id: item?.participant_id || '',
           participant: {
-            id: item.participant_id,
-            username: item.participant_username,
-            avatar_url: item.participant_avatar_url,
+            id: item?.participant_id || '',
+            username: item?.participant_username || 'Unknown',
+            avatar_url: item?.participant_avatar_url,
           },
-          title: item.entry_title,
-          images: item.entry_images || [],
-          votes_count: item.votes_count,
+          title: item?.entry_title || 'Untitled Entry',
+          images: Array.isArray(item?.entry_images) ? item.entry_images : [],
+          votes_count: item?.votes_count || 0,
           status: 'approved',
-          submitted_at: item.created_at,
-          rank: item.rank,
-        }));
+          submitted_at: item?.created_at || new Date().toISOString(),
+          rank: item?.rank || index + 1,
+        })) : [];
         setEntries(transformedEntries);
       }
     } catch (error) {
@@ -136,11 +136,11 @@ const CompetitionVotingScreen = ({ route, navigation }) => {
     if (voteResult.success) {
       // Update local entry vote count
       setEntries(prevEntries =>
-        prevEntries.map(entry =>
+        Array.isArray(prevEntries) ? prevEntries.map(entry =>
           entry.id === entryId
             ? { ...entry, votes_count: voteResult.votes_count || entry.votes_count }
             : entry
-        )
+        ) : []
       );
 
       // Refresh leaderboard to show new rankings

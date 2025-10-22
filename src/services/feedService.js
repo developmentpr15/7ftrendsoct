@@ -52,11 +52,11 @@ class FeedService {
       });
 
       console.log(`Feed loaded: ${transformedFeed.length} posts`, {
-        mutual_friends: transformedFeed.filter(p => p.feed_type === 'mutual_friend').length,
-        following: transformedFeed.filter(p => p.feed_type === 'following').length,
-        own: transformedFeed.filter(p => p.feed_type === 'own').length,
-        trending: transformedFeed.filter(p => p.feed_type === 'trending').length,
-        competitions: transformedFeed.filter(p => p.feed_type === 'competition').length
+        mutual_friends: Array.isArray(transformedFeed) ? transformedFeed.filter(p => p.feed_type === 'mutual_friend').length : 0,
+        following: Array.isArray(transformedFeed) ? transformedFeed.filter(p => p.feed_type === 'following').length : 0,
+        own: Array.isArray(transformedFeed) ? transformedFeed.filter(p => p.feed_type === 'own').length : 0,
+        trending: Array.isArray(transformedFeed) ? transformedFeed.filter(p => p.feed_type === 'trending').length : 0,
+        competitions: Array.isArray(transformedFeed) ? transformedFeed.filter(p => p.feed_type === 'competition').length : 0
       });
 
       return transformedFeed;
@@ -69,6 +69,19 @@ class FeedService {
 
   // Transform Supabase data to match frontend expectations
   transformFeedData(data) {
+    // Add defensive programming for iterator method errors
+    console.log('🔍 [FeedService] Raw API response data:', {
+      isArray: Array.isArray(data),
+      type: typeof data,
+      length: data?.length,
+      data: data
+    });
+
+    if (!Array.isArray(data)) {
+      console.warn('⚠️ [FeedService] transformFeedData received non-array data:', data);
+      return [];
+    }
+
     return data.map(post => ({
       id: post.post_id,
       author_id: post.author_id,
@@ -144,8 +157,9 @@ class FeedService {
         .from('posts')
         .select(`
           *,
-          users!posts_author_id_fkey(
+          profiles!posts_author_id_fkey(
             id,
+            user_id,
             username,
             avatar_url,
             full_name
@@ -157,9 +171,22 @@ class FeedService {
 
       if (error) throw error;
 
+      // Add defensive programming for iterator method errors
+      console.log('🔍 [FeedService] Fallback feed raw data:', {
+        isArray: Array.isArray(data),
+        type: typeof data,
+        length: data?.length,
+        data: data
+      });
+
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ [FeedService] getFallbackFeed received non-array data:', data);
+        return [];
+      }
+
       return data.map(post => ({
         ...post,
-        author: post.users || {
+        author: post.profiles || {
           id: post.author_id,
           username: 'Anonymous',
           avatar_url: null,
@@ -308,6 +335,27 @@ class FeedService {
 
   // Get feed analytics (for debugging)
   getFeedAnalytics(feedData) {
+    // Add defensive programming for iterator method errors
+    console.log('🔍 [FeedService] getFeedAnalytics input:', {
+      isArray: Array.isArray(feedData),
+      type: typeof feedData,
+      length: feedData?.length
+    });
+
+    if (!Array.isArray(feedData)) {
+      console.warn('⚠️ [FeedService] getFeedAnalytics received non-array data:', feedData);
+      return {
+        total_posts: 0,
+        mutual_friends_posts: 0,
+        following_posts: 0,
+        own_posts: 0,
+        trending_posts: 0,
+        competition_posts: 0,
+        average_engagement: 0,
+        top_performing_posts: []
+      };
+    }
+
     const analytics = {
       total_posts: feedData.length,
       mutual_friends_posts: 0,

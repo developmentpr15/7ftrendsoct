@@ -216,11 +216,11 @@ export const useRealtimeStore = create<RealtimeStore>()(
         // Mark notification as read
         markNotificationAsRead: (notificationId: string) => {
           const state = get();
-          const updatedNotifications = state.notifications.map(notification =>
+          const updatedNotifications = Array.isArray(state.notifications) ? state.notifications.map(notification =>
             notification.id === notificationId
               ? { ...notification, read: true }
               : notification
-          );
+          ) : [];
 
           const unreadCount = updatedNotifications.filter(n => !n.read).length;
 
@@ -233,10 +233,10 @@ export const useRealtimeStore = create<RealtimeStore>()(
         // Mark all notifications as read
         markAllNotificationsAsRead: () => {
           const state = get();
-          const updatedNotifications = state.notifications.map(notification => ({
+          const updatedNotifications = Array.isArray(state.notifications) ? state.notifications.map(notification => ({
             ...notification,
             read: true,
-          }));
+          })) : [];
 
           set({
             notifications: updatedNotifications,
@@ -258,11 +258,11 @@ export const useRealtimeStore = create<RealtimeStore>()(
             const state = get();
             const subscriptionKey = `post_${postId}`;
 
-            if (!state.activeSubscriptions.includes(subscriptionKey)) {
+            if (!Array.isArray(state.activeSubscriptions) || !state.activeSubscriptions.includes(subscriptionKey)) {
               set({
-                activeSubscriptions: [...state.activeSubscriptions, subscriptionKey],
+                activeSubscriptions: [...(state.activeSubscriptions || []), subscriptionKey],
                 subscriptionStatus: {
-                  ...state.subscriptionStatus,
+                  ...(state.subscriptionStatus || {}),
                   [subscriptionKey]: 'connecting',
                 },
               });
@@ -290,8 +290,8 @@ export const useRealtimeStore = create<RealtimeStore>()(
 
             await realtimeService.unsubscribe(subscriptionKey);
 
-            const updatedSubscriptions = state.activeSubscriptions.filter(s => s !== subscriptionKey);
-            const updatedStatus = { ...state.subscriptionStatus };
+            const updatedSubscriptions = Array.isArray(state.activeSubscriptions) ? state.activeSubscriptions.filter(s => s !== subscriptionKey) : [];
+            const updatedStatus = { ...(state.subscriptionStatus || {}) };
             delete updatedStatus[subscriptionKey];
 
             set({
@@ -426,7 +426,7 @@ function handleLikeEvent(event: RealtimeEvent) {
   // Update post in feed if it exists
   if (like.post_id) {
     // Optimistically update the post in the feed
-    const updatedPosts = feedStore.posts.map(post => {
+    const updatedPosts = Array.isArray(feedStore.posts) ? feedStore.posts.map((post) => {
       if (post.id === like.post_id) {
         const isLiked = like.user_id === useSessionStore.getState().user?.id;
         return {
@@ -436,7 +436,7 @@ function handleLikeEvent(event: RealtimeEvent) {
         };
       }
       return post;
-    });
+    }) : [];
 
     feedStore.posts = updatedPosts;
   }
@@ -464,7 +464,7 @@ function handleCommentEvent(event: RealtimeEvent) {
 
   // Update post in feed if it exists
   if (comment.post_id) {
-    const updatedPosts = feedStore.posts.map(post => {
+    const updatedPosts = Array.isArray(feedStore.posts) ? feedStore.posts.map((post) => {
       if (post.id === comment.post_id) {
         return {
           ...post,
@@ -472,7 +472,7 @@ function handleCommentEvent(event: RealtimeEvent) {
         };
       }
       return post;
-    });
+    }) : [];
 
     feedStore.posts = updatedPosts;
   }
@@ -499,12 +499,12 @@ function handleCompetitionEvent(event: RealtimeEvent) {
   const competitionStore = useCompetitionStore.getState();
 
   // Update competition in store
-  const updatedCompetitions = competitionStore.competitions.map(comp => {
+  const updatedCompetitions = Array.isArray(competitionStore.competitions) ? competitionStore.competitions.map(comp => {
     if (comp.id === competition.id) {
       return { ...comp, ...competition };
     }
     return comp;
-  });
+  }) : [];
 
   competitionStore.competitions = updatedCompetitions;
 
@@ -566,13 +566,13 @@ function handleUnlikeEvent(event: RealtimeEvent) {
 
   // Update post in feed if it exists
   if (like?.post_id) {
-    const updatedPosts = feedStore.posts.map(post => {
+    const updatedPosts = Array.isArray(feedStore.posts) ? feedStore.posts.map(post => {
       if (post.id === like.post_id) {
         const isLiked = like.user_id === useSessionStore.getState().user?.id;
         return {
           ...post,
           likes_count: isLiked ? Math.max(0, post.likes_count - 1) : post.likes_count,
-          is_liked: isLiked ? false : post.is_liked,
+          is_liked: isLiked ? false : post.is_liked
         };
       }
       return post;
@@ -588,7 +588,7 @@ function handleCommentDeleteEvent(event: RealtimeEvent) {
 
   // Update post in feed if it exists
   if (comment?.post_id) {
-    const updatedPosts = feedStore.posts.map(post => {
+    const updatedPosts = Array.isArray(feedStore.posts) ? feedStore.posts.map(post => {
       if (post.id === comment.post_id) {
         return {
           ...post,

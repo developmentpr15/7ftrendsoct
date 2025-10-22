@@ -159,7 +159,8 @@ class AuthService {
       }
 
       const profileData = {
-        user_id: userId,
+        // Remove explicit id - let database auto-generate it
+        user_id: userId, // Keep user_id for compatibility and link to auth.users
         username: onboardingData.username.toLowerCase(),
         full_name: onboardingData.full_name || '',
         bio: onboardingData.bio || '',
@@ -421,7 +422,7 @@ class AuthService {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (profileError) {
@@ -461,7 +462,7 @@ class AuthService {
       const { data: profile, error: updateError } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', user.id)
+        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -473,6 +474,52 @@ class AuthService {
       throw error;
     }
   }
+  // Sign in with magic link
+  async signInWithMagicLink(email: string): Promise<SocialAuthResult> {
+    try {
+      console.log('Sending magic link to:', email);
+
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: email.toLowerCase().trim(),
+        options: {
+          // Redirect to app scheme for deep linking
+          emailRedirectTo: '7ftrends://auth/callback',
+        },
+      });
+
+      if (error) {
+        console.error('Magic link error:', error);
+
+        let errorMessage = 'Failed to send magic link. Please try again.';
+        if (error.message?.includes('rate_limit')) {
+          errorMessage = 'Too many requests. Please wait a moment and try again.';
+        } else if (error.message?.includes('network')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message?.includes('Invalid email')) {
+          errorMessage = 'Invalid email address. Please check and try again.';
+        }
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
+      }
+
+      console.log('Magic link sent successfully');
+      return {
+        success: true,
+        message: `Magic link sent to ${email.toLowerCase().trim()}. Check your email to complete sign-in.`,
+      };
+
+    } catch (error: any) {
+      console.error('Magic link send failed:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to send magic link. Please try again.',
+      };
+    }
+  }
+
   // Sign in with email or username
   async signInWithEmailOrUsername(loginIdentifier: string, password: string): Promise<SocialAuthResult> {
     try {
@@ -538,7 +585,7 @@ class AuthService {
       const { data: existingProfile, error: profileCheckError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('user_id', data.user.id)
         .single();
 
       if (profileCheckError && profileCheckError.code !== 'PGRST116') { // PGRST116 means no rows found
@@ -555,9 +602,23 @@ class AuthService {
       };
     } catch (error: any) {
       console.error('Sign in process failed:', error);
+
+      // Provide more specific error messages
+      let errorMessage = 'Login failed, please try again later';
+
+      if (error?.code === 'PGRST204') {
+        errorMessage = 'Database schema error. Please try again in a few moments.';
+      } else if (error?.code === 'PGRST205') {
+        errorMessage = 'Profile setup incomplete. Please complete onboarding.';
+      } else if (error?.message?.includes('Invalid login')) {
+        errorMessage = 'Invalid email or password. Please check your credentials.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       return {
         success: false,
-        error: error.message || 'Login failed, please try again later',
+        error: errorMessage,
       };
     }
   }
@@ -577,6 +638,7 @@ export const {
   updateUserProfile,
   checkUsernameAvailability,
   signInWithEmailOrUsername,
+  signInWithMagicLink,
 } = authService;
 
 export default authService;

@@ -305,7 +305,19 @@ class VisionService {
         return []
       }
 
-      return data?.map(item => item.id) || []
+      // Add defensive programming for iterator method errors
+      console.log('🔍 [VisionService] Raw API response data:', {
+        isArray: Array.isArray(data),
+        type: typeof data,
+        length: data?.length
+      });
+
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ [VisionService] Received non-array data:', data);
+        return [];
+      }
+
+      return data.map(item => item.id) || []
 
     } catch (error: any) {
       console.error('Search by AI tags error:', error)
@@ -328,7 +340,19 @@ class VisionService {
         return []
       }
 
-      return data?.map(item => item.id) || []
+      // Add defensive programming for iterator method errors
+      console.log('🔍 [VisionService] Raw API response data:', {
+        isArray: Array.isArray(data),
+        type: typeof data,
+        length: data?.length
+      });
+
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ [VisionService] Received non-array data:', data);
+        return [];
+      }
+
+      return data.map(item => item.id) || []
 
     } catch (error: any) {
       console.error('Get items by AI category error:', error)
@@ -351,7 +375,19 @@ class VisionService {
         return []
       }
 
-      return data?.map(item => item.id) || []
+      // Add defensive programming for iterator method errors
+      console.log('🔍 [VisionService] Raw API response data:', {
+        isArray: Array.isArray(data),
+        type: typeof data,
+        length: data?.length
+      });
+
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ [VisionService] Received non-array data:', data);
+        return [];
+      }
+
+      return data.map(item => item.id) || []
 
     } catch (error: any) {
       console.error('Get items by AI colors error:', error)
@@ -374,7 +410,19 @@ class VisionService {
         return []
       }
 
-      return data?.map(item => item.id) || []
+      // Add defensive programming for iterator method errors
+      console.log('🔍 [VisionService] Raw API response data:', {
+        isArray: Array.isArray(data),
+        type: typeof data,
+        length: data?.length
+      });
+
+      if (!Array.isArray(data)) {
+        console.warn('⚠️ [VisionService] Received non-array data:', data);
+        return [];
+      }
+
+      return data.map(item => item.id) || []
 
     } catch (error: any) {
       console.error('Get items by AI occasions error:', error)

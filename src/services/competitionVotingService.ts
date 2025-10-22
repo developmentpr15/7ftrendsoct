@@ -250,13 +250,15 @@ class CompetitionVotingService {
         }
       }
 
-      const votes = data || []
-      const uniqueVoters = new Set(votes.map(v => v.voter_id)).size
+      const votes = Array.isArray(data) ? data : []
+      const uniqueVoters = new Set(votes.map(v => v?.voter_id).filter(Boolean)).size
       const votesByCountry: Record<string, number> = {}
 
       votes.forEach(vote => {
-        const country = vote.voter_country || 'Unknown'
-        votesByCountry[country] = (votesByCountry[country] || 0) + 1
+        if (vote) {
+          const country = vote.voter_country || 'Unknown'
+          votesByCountry[country] = (votesByCountry[country] || 0) + 1
+        }
       })
 
       // Check if competition is still in voting period

@@ -445,9 +445,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
             // Update local state
             set({
-              wardrobeItems: get().wardrobeItems.map(item =>
+              wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.map(item =>
                 item.id === itemId ? { ...item, ...updates } : item
-              ),
+              ) : [],
             });
 
             // Update stats
@@ -483,7 +483,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
             // Update local state
             set({
-              wardrobeItems: get().wardrobeItems.filter(item => item.id !== itemId),
+              wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.filter(item => item.id !== itemId) : [],
             });
 
             // Update stats
@@ -553,11 +553,11 @@ export const useWardrobeStore = create<WardrobeStore>()(
             // Update local state with processing status
             if (result.success) {
               set({
-                wardrobeItems: get().wardrobeItems.map(item =>
+                wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.map(item =>
                   item.id === itemId
                     ? { ...item, ai_status: 'processing', ai_processed_at: new Date().toISOString() }
                     : item
-                ),
+                ) : [],
               });
             }
 
@@ -607,11 +607,11 @@ export const useWardrobeStore = create<WardrobeStore>()(
             if (result.success) {
               // Update local state with processing status
               set({
-                wardrobeItems: get().wardrobeItems.map(item =>
+                wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.map(item =>
                   item.id === itemId
                     ? { ...item, ai_status: 'processing', ai_error_message: null }
                     : item
-                ),
+                ) : [],
               });
             }
 
@@ -626,15 +626,15 @@ export const useWardrobeStore = create<WardrobeStore>()(
             const result = await visionService.batchAITagging(itemIds);
 
             // Update local status for all items
-            if (result.success && result.results) {
+            if (result.success && Array.isArray(result.results)) {
               result.results.forEach((itemResult: any) => {
-                if (itemResult.success) {
+                if (itemResult && itemResult.success) {
                   set({
-                    wardrobeItems: get().wardrobeItems.map(item =>
+                    wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.map(item =>
                       item.id === itemResult.itemId
                         ? { ...item, ai_status: 'processing' }
                         : item
-                    ),
+                    ) : [],
                   });
                 }
               });
@@ -649,9 +649,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
         monitorAITaggingProgress: (itemId: string, onUpdate: (status: any) => void) => {
           visionService.monitorAITaggingProgress(itemId, (status) => {
             // Update local state when status changes
-            if (status.status === 'completed' || status.status === 'failed') {
+            if (status && (status.status === 'completed' || status.status === 'failed')) {
               set({
-                wardrobeItems: get().wardrobeItems.map(item =>
+                wardrobeItems: Array.isArray(get().wardrobeItems) ? get().wardrobeItems.map(item =>
                   item.id === itemId
                     ? {
                         ...item,
@@ -661,7 +661,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
                         ai_processed_at: status.processedAt || new Date().toISOString()
                       }
                     : item
-                ),
+                ) : [],
               });
 
               // Refresh items to get AI data when completed
@@ -801,9 +801,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
             // Update local state
             set({
-              outfits: get().outfits.map(outfit =>
+              outfits: Array.isArray(get().outfits) ? get().outfits.map(outfit =>
                 outfit.id === outfitId ? { ...outfit, ...updates } : outfit
-              ),
+              ) : [],
             });
 
             return { success: true };
@@ -826,7 +826,7 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
             // Update local state
             set({
-              outfits: get().outfits.filter(outfit => outfit.id !== outfitId),
+              outfits: Array.isArray(get().outfits) ? get().outfits.filter(outfit => outfit.id !== outfitId) : [],
             });
 
             return { success: true };
@@ -934,9 +934,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
             // Update local state
             set({
-              outfitSuggestions: get().outfitSuggestions.map(suggestion =>
+              outfitSuggestions: Array.isArray(get().outfitSuggestions) ? get().outfitSuggestions.map(suggestion =>
                 suggestion.id === suggestionId ? { ...suggestion, is_saved: true } : suggestion
-              ),
+              ) : [],
             });
 
             return { success: true };
@@ -948,9 +948,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
         dismissOutfitSuggestion: async (suggestionId: string) => {
           set({
-            outfitSuggestions: get().outfitSuggestions.filter(
+            outfitSuggestions: Array.isArray(get().outfitSuggestions) ? get().outfitSuggestions.filter(
               suggestion => suggestion.id !== suggestionId
-            ),
+            ) : [],
           });
         },
 
@@ -1152,40 +1152,44 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
         // Analytics and Stats
         calculateStats: () => {
-          const items = get().wardrobeItems;
-          const outfits = get().outfits;
+          const items = Array.isArray(get().wardrobeItems) ? get().wardrobeItems : [];
+          const outfits = Array.isArray(get().outfits) ? get().outfits : [];
 
           const stats = {
             total_items: items.length,
             items_by_category: {} as Record<string, number>,
             items_by_color: {} as Record<string, number>,
             total_outfits: outfits.length,
-            favorite_items: items.filter(item => item.is_favorite).length,
-            items_in_rotation: items.filter(item => item.is_available && !item.last_worn).length,
-            total_value: items.reduce((sum, item) => sum + (item.purchase_price || 0), 0),
+            favorite_items: items.filter(item => item && item.is_favorite).length,
+            items_in_rotation: items.filter(item => item && item.is_available && !item.last_worn).length,
+            total_value: items.reduce((sum, item) => sum + (item?.purchase_price || 0), 0),
           };
 
           // Count by category
           items.forEach(item => {
-            stats.items_by_category[item.category] = (stats.items_by_category[item.category] || 0) + 1;
-            stats.items_by_color[item.color] = (stats.items_by_color[item.color] || 0) + 1;
+            if (item) {
+              stats.items_by_category[item.category] = (stats.items_by_category[item.category] || 0) + 1;
+              stats.items_by_color[item.color] = (stats.items_by_color[item.color] || 0) + 1;
+            }
           });
 
           set({ stats });
         },
 
         getWardrobeValue: async () => {
-          const items = get().wardrobeItems;
-          return items.reduce((sum, item) => sum + (item.purchase_price || 0), 0);
+          const items = Array.isArray(get().wardrobeItems) ? get().wardrobeItems : [];
+          return items.reduce((sum, item) => sum + (item?.purchase_price || 0), 0);
         },
 
         getItemUsageStats: async (itemId: string) => {
           try {
             // Find all outfits containing this item
-            const outfits = get().outfits.filter(outfit => outfit.items.includes(itemId));
-            const totalWears = outfits.reduce((sum, outfit) => sum + (outfit.wear_count || 0), 0);
+            const outfits = Array.isArray(get().outfits) ? get().outfits.filter(outfit =>
+              outfit && Array.isArray(outfit.items) && outfit.items.includes(itemId)
+            ) : [];
+            const totalWears = outfits.reduce((sum, outfit) => sum + (outfit?.wear_count || 0), 0);
 
-            const item = get().wardrobeItems.find(item => item.id === itemId);
+            const item = Array.isArray(get().wardrobeItems) ? get().wardrobeItems.find(item => item?.id === itemId) : null;
             const lastWorn = item?.last_worn;
             const daysSinceLastWorn = lastWorn ? Math.floor((Date.now() - new Date(lastWorn).getTime()) / (1000 * 60 * 60 * 24)) : null;
 
@@ -1205,8 +1209,9 @@ export const useWardrobeStore = create<WardrobeStore>()(
 
         // Utility
         generateOutfitIdeas: async (filters: any) => {
-          const items = get().wardrobeItems;
+          const items = Array.isArray(get().wardrobeItems) ? get().wardrobeItems : [];
           const filteredItems = items.filter(item => {
+            if (!item) return false;
             if (filters.category && !filters.category.includes(item.category)) return false;
             if (filters.occasion && !filters.occasion.some((occ: string) => item.occasion?.includes(occ))) return false;
             if (filters.season && !filters.season.some((season: string) => item.season?.includes(season))) return false;
@@ -1223,17 +1228,19 @@ export const useWardrobeStore = create<WardrobeStore>()(
             const outfitItemsData: WardrobeItem[] = [];
 
             categories.forEach(category => {
-              const categoryItems = filteredItems.filter(item => item.category === category);
+              const categoryItems = filteredItems.filter(item => item?.category === category);
               if (categoryItems.length > 0) {
                 const randomItem = categoryItems[Math.floor(Math.random() * categoryItems.length)];
-                outfitItems.push(randomItem.id);
-                outfitItemsData.push(randomItem);
+                if (randomItem) {
+                  outfitItems.push(randomItem.id);
+                  outfitItemsData.push(randomItem);
+                }
               }
             });
 
             if (outfitItems.length > 0) {
-              const colorPalette = [...new Set(outfitItemsData.map(item => item.color))];
-              const styles = [...new Set(outfitItemsData.map(item => item.style).filter(Boolean))];
+              const colorPalette = [...new Set(outfitItemsData.map(item => item?.color || 'unknown'))];
+              const styles = [...new Set(outfitItemsData.map(item => item?.style).filter(Boolean))];
 
               ideas.push({
                 id: `generated-${Date.now()}-${i}`,
@@ -1262,14 +1269,14 @@ export const useWardrobeStore = create<WardrobeStore>()(
         },
 
         categorizeItems: () => {
-          const items = get().wardrobeItems;
+          const items = Array.isArray(get().wardrobeItems) ? get().wardrobeItems : [];
           const categories = {
-            tops: items.filter(item => item.category === 'top'),
-            bottoms: items.filter(item => item.category === 'bottom'),
-            dresses: items.filter(item => item.category === 'dress'),
-            outerwear: items.filter(item => item.category === 'outerwear'),
-            shoes: items.filter(item => item.category === 'shoes'),
-            accessories: items.filter(item => item.category === 'accessories'),
+            tops: items.filter(item => item?.category === 'top'),
+            bottoms: items.filter(item => item?.category === 'bottom'),
+            dresses: items.filter(item => item?.category === 'dress'),
+            outerwear: items.filter(item => item?.category === 'outerwear'),
+            shoes: items.filter(item => item?.category === 'shoes'),
+            accessories: items.filter(item => item?.category === 'accessories'),
           };
 
           // This could be used for UI organization

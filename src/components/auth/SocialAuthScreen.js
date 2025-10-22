@@ -96,7 +96,8 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
           });
         }
       } else {
-        Alert.alert('Sign In Error', result.error || 'Failed to sign in');
+        console.error('Sign in failed:', result.error);
+        Alert.alert('Sign In Error', result.error || 'Failed to sign in. Please try again.');
       }
     } catch (error) {
       console.error(`${provider} sign-in error:`, error);
@@ -128,7 +129,8 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
           });
         }
       } else {
-        Alert.alert('Sign In Error', result.error || 'Failed to sign in');
+        console.error('Sign in failed:', result.error);
+        Alert.alert('Sign In Error', result.error || 'Failed to sign in. Please try again.');
       }
     } catch (error) {
       console.error('Email sign-in error:', error);
@@ -347,12 +349,40 @@ const SocialAuthScreen = ({ initialMode = 'signin' }) => {
               )}
             </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
+            {/* Magic Link Option (Sign In Only) */}
+            {mode === 'signin' && (
+              <>
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={styles.magicLinkButton}
+                  onPress={() => navigation.navigate('MagicLinkAuth')}
+                >
+                  <Ionicons name="mail-outline" size={20} color="#FF6B6B" style={styles.magicLinkIcon} />
+                  <Text style={styles.magicLinkButtonText}>Sign in with Magic Link</Text>
+                  <Text style={styles.magicLinkSubtext}>No password needed</Text>
+                </TouchableOpacity>
+
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR CONTINUE WITH</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+              </>
+            )}
+
+            {/* Divider for Sign Up */}
+            {mode === 'signup' && (
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            )}
 
             {/* Social Sign In Buttons */}
             <View style={styles.socialButtons}>
@@ -610,6 +640,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  magicLinkButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  magicLinkIcon: {
+    marginBottom: 8,
+  },
+  magicLinkButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    marginBottom: 4,
+  },
+  magicLinkSubtext: {
+    fontSize: 12,
+    color: '#999',
   },
   switchMode: {
     flexDirection: 'row',

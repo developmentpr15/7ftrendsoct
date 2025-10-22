@@ -133,13 +133,21 @@ export const initializeStores = async () => {
       const { fetchFeed } = useFeedStore.getState();
       await fetchFeed(true);
 
-      // Preload competitions
-      const { fetchCompetitions } = useCompetitionStore.getState();
-      await fetchCompetitions(true);
+      // Preload competitions (with error handling)
+      try {
+        const { fetchCompetitions } = useCompetitionStore.getState();
+        await fetchCompetitions(true);
+      } catch (error) {
+        console.warn('Failed to preload competitions:', error.message);
+      }
 
-      // Preload wardrobe stats
-      const { calculateStats } = useWardrobeStore.getState();
-      calculateStats();
+      // Preload wardrobe stats (with error handling)
+      try {
+        const { calculateStats } = useWardrobeStore.getState();
+        calculateStats();
+      } catch (error) {
+        console.warn('Failed to calculate wardrobe stats:', error.message);
+      }
     }
   } catch (error) {
     console.error('Error initializing stores:', error);

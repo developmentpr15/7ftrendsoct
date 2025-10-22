@@ -230,17 +230,14 @@ export const useCompetitionStore = create<CompetitionStore>()(
 
             const { data, error } = await supabase
               .from('competitions')
-              .select(`
-                *,
-                creator:users!competitions_created_by_fkey(id, username, avatar_url)
-              `)
+              .select('*')
               .in('status', statusFilter)
               .order('created_at', { ascending: false })
               .range(0, state.pagination.itemsPerPage * state.pagination.currentPage - 1);
 
             if (error) throw error;
 
-            const competitions: Competition[] = data || [];
+            const competitions: Competition[] = Array.isArray(data) ? data : [];
 
             // Filter based on user eligibility if needed
             let filteredCompetitions = competitions;
@@ -250,7 +247,7 @@ export const useCompetitionStore = create<CompetitionStore>()(
               );
             } else if (state.filters.eligibility === 'participating' && user) {
               filteredCompetitions = competitions.filter(competition =>
-                state.userEntries.some(entry => entry.competition_id === competition.id)
+                Array.isArray(state.userEntries) && state.userEntries.some(entry => entry.competition_id === competition.id)
               );
             }
 
@@ -308,9 +305,9 @@ export const useCompetitionStore = create<CompetitionStore>()(
             set({ submitting: true, error: null });
 
             // Check if already participating
-            const existingEntry = get().userEntries.find(
+            const existingEntry = Array.isArray(get().userEntries) ? get().userEntries.find(
               entry => entry.competition_id === competitionId
-            );
+            ) : null;
 
             if (existingEntry) {
               return { success: false, error: 'Already participating in this competition' };
@@ -369,9 +366,9 @@ export const useCompetitionStore = create<CompetitionStore>()(
 
             // Update local state
             set({
-              userEntries: get().userEntries.filter(
+              userEntries: Array.isArray(get().userEntries) ? get().userEntries.filter(
                 entry => entry.competition_id !== competitionId
-              ),
+              ) : [],
             });
 
             return { success: true };
@@ -443,9 +440,9 @@ export const useCompetitionStore = create<CompetitionStore>()(
 
             // Update local state
             set({
-              userEntries: get().userEntries.map(entry =>
+              userEntries: Array.isArray(get().userEntries) ? get().userEntries.map(entry =>
                 entry.id === entryId ? { ...entry, ...updates } : entry
-              ),
+              ) : [],
             });
 
             return { success: true };
@@ -472,9 +469,9 @@ export const useCompetitionStore = create<CompetitionStore>()(
 
             // Update local state
             set({
-              userEntries: get().userEntries.map(entry =>
+              userEntries: Array.isArray(get().userEntries) ? get().userEntries.map(entry =>
                 entry.id === entryId ? { ...entry, status: 'withdrawn' } : entry
-              ),
+              ) : [],
             });
 
             return { success: true };
@@ -625,10 +622,10 @@ export const useCompetitionStore = create<CompetitionStore>()(
             const votingStatus = await competitionVotingService.getUserVotingStatus(competitionId);
             const user = useSessionStore.getState().user;
 
-            if (user) {
+            if (user && Array.isArray(votingStatus)) {
               const votesMap = new Map();
               votingStatus.forEach((status) => {
-                if (status.has_voted) {
+                if (status && status.has_voted) {
                   votesMap.set(status.entry_id, {
                     id: status.entry_id,
                     entry_id: status.entry_id,

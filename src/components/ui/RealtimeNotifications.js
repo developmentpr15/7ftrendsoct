@@ -108,7 +108,7 @@ const RealtimeNotifications = () => {
     });
 
     // Clean up animations for removed notifications
-    const currentIds = new Set(displayNotifications.map(n => n.id));
+    const currentIds = new Set(Array.isArray(displayNotifications) ? displayNotifications.map(n => n?.id).filter(Boolean) : []);
     animatedValues.forEach((_, id) => {
       if (!currentIds.has(id)) {
         animatedValues.delete(id);
@@ -123,8 +123,8 @@ const RealtimeNotifications = () => {
   useEffect(() => {
     const timers = new Map();
 
-    visibleNotifications.forEach((notification) => {
-      if (!timers.has(notification.id)) {
+    Array.isArray(visibleNotifications) && visibleNotifications.forEach((notification) => {
+      if (notification && notification.id && !timers.has(notification.id)) {
         const timer = setTimeout(() => {
           dismissNotification(notification.id);
         }, 5000);

@@ -39,7 +39,8 @@
       "Bash(npx react-native bundle:*)",
       "Bash(npx @expo/metro-config node_modules/metro/src/cli.js bundle:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx supabase login:*)"
+      "Bash(npx supabase login:*)",
+      "Bash(powershell \"Get-Process node -ErrorAction SilentlyContinue | Stop-Process -Force\")"
     ],
     "deny": [],
     "ask": []

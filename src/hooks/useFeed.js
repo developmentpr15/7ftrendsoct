@@ -132,11 +132,11 @@ export const useFeed = (options = {}) => {
 
     try {
       // Update local state optimistically
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId
           ? { ...post, is_liked: true, likes_count: post.likes_count + 1 }
           : post
-      ));
+      ) : []);
 
       // Call service
       await feedService.likePost(user.id, postId);
@@ -144,11 +144,11 @@ export const useFeed = (options = {}) => {
       console.log('Post liked successfully:', postId);
     } catch (error) {
       // Revert on error
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId
           ? { ...post, is_liked: false, likes_count: post.likes_count - 1 }
           : post
-      ));
+      ) : []);
       console.error('Error liking post:', error);
     }
   }, [user?.id]);
@@ -159,11 +159,11 @@ export const useFeed = (options = {}) => {
 
     try {
       // Update local state optimistically
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId
           ? { ...post, is_liked: false, likes_count: Math.max(0, post.likes_count - 1) }
           : post
-      ));
+      ) : []);
 
       // Call service
       await feedService.unlikePost(user.id, postId);
@@ -171,7 +171,7 @@ export const useFeed = (options = {}) => {
       console.log('Post unliked successfully:', postId);
     } catch (error) {
       // Revert on error
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId
           ? { ...post, is_liked: true, likes_count: post.likes_count + 1 }
           : post
@@ -186,7 +186,7 @@ export const useFeed = (options = {}) => {
 
     try {
       // Update local state optimistically
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId && post.feed_type === 'competition'
           ? { ...post, is_liked: true, likes_count: post.likes_count + 1 }
           : post
@@ -198,7 +198,7 @@ export const useFeed = (options = {}) => {
       console.log('Vote submitted successfully:', postId);
     } catch (error) {
       // Revert on error
-      setPosts(prev => prev.map(post =>
+      setPosts(prev => Array.isArray(prev) ? prev.map(post =>
         post.id === postId
           ? { ...post, is_liked: false, likes_count: Math.max(0, post.likes_count - 1) }
           : post
@@ -215,7 +215,7 @@ export const useFeed = (options = {}) => {
       await feedService.reportPost(user.id, postId, reason);
 
       // Remove post from local state
-      setPosts(prev => prev.filter(post => post.id !== postId));
+      setPosts(prev => Array.isArray(prev) ? prev.filter(post => post.id !== postId) : []);
 
       console.log('Post reported successfully:', postId);
       return { success: true };
