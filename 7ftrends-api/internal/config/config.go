@@ -60,6 +60,13 @@ type StorageConfig struct {
 	AllowedTypes    []string `mapstructure:"allowed_types"`
 	BucketName      string   `mapstructure:"bucket_name"`
 	CompressionQuality int   `mapstructure:"compression_quality"`
+	// R2/S3-compatible fields
+	Region          string `mapstructure:"region"`
+	Endpoint        string `mapstructure:"endpoint"`
+	AccessKeyID     string `mapstructure:"access_key_id"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+	PublicBaseURL   string `mapstructure:"public_base_url"`
+	UsePathStyle    bool   `mapstructure:"use_path_style"`
 }
 
 // AIConfig holds AI service configuration
@@ -192,6 +199,31 @@ func overrideWithEnv(config *Config) {
 	if maxSize := os.Getenv("MAX_FILE_SIZE"); maxSize != "" {
 		if size, err := strconv.ParseInt(maxSize, 10, 64); err == nil {
 			config.Storage.MaxFileSize = size
+		}
+	}
+
+	// R2 / S3-compatible storage overrides
+	if region := os.Getenv("R2_REGION"); region != "" {
+		config.Storage.Region = region
+	}
+	if endpoint := os.Getenv("R2_ENDPOINT"); endpoint != "" {
+		config.Storage.Endpoint = endpoint
+	}
+	if accessKey := os.Getenv("R2_ACCESS_KEY_ID"); accessKey != "" {
+		config.Storage.AccessKeyID = accessKey
+	}
+	if secretKey := os.Getenv("R2_SECRET_ACCESS_KEY"); secretKey != "" {
+		config.Storage.SecretAccessKey = secretKey
+	}
+	if bucket := os.Getenv("R2_BUCKET_NAME"); bucket != "" {
+		config.Storage.BucketName = bucket
+	}
+	if pub := os.Getenv("R2_PUBLIC_BASE_URL"); pub != "" {
+		config.Storage.PublicBaseURL = pub
+	}
+	if usePath := os.Getenv("R2_USE_PATH_STYLE"); usePath != "" {
+		if v, err := strconv.ParseBool(usePath); err == nil {
+			config.Storage.UsePathStyle = v
 		}
 	}
 }
